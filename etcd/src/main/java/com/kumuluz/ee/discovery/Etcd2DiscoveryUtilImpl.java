@@ -190,7 +190,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             } catch (SocketException e) {
                 e.printStackTrace();
             }
-            Collections.sort(interfaceAddresses, new HostAddressComparator());
+            interfaceAddresses.sort(new HostAddressComparator());
             URL ipUrl = null;
             String servicePort = configurationUtil.get("port").orElse("8080");
             for(int i = 0; i < interfaceAddresses.size() && ipUrl == null; i++) {
@@ -529,12 +529,15 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     }
 
     private String getKeyOneLayerUp(String key) {
+
         String[] splittedKey = key.split("/");
-        String newKey = "";
+
+        StringBuilder newKey = new StringBuilder();
+
         for (int i = 0; i < splittedKey.length - 1; i++) {
-            newKey += splittedKey[i] + "/";
+            newKey.append(splittedKey[i]).append("/");
         }
-        return newKey;
+        return newKey.toString();
     }
 
     private String getServiceNameFromKey(String key) {

@@ -60,7 +60,7 @@ public class Etcd2Registrator implements Runnable {
             try {
                 this.etcd.putDir(this.serviceConfig.getServiceInstanceKey()).prevExist(true)
                         .refresh(this.serviceConfig.getTtl()).send().get();
-            } catch (IOException e) {
+            } catch (IOException | EtcdAuthenticationException | TimeoutException e) {
                 e.printStackTrace();
             } catch (EtcdException e) {
                 if (e.isErrorCode(100)) {
@@ -72,10 +72,6 @@ public class Etcd2Registrator implements Runnable {
                 } else {
                     e.printStackTrace();
                 }
-            } catch (EtcdAuthenticationException e) {
-                e.printStackTrace();
-            } catch (TimeoutException e) {
-                e.printStackTrace();
             }
         }
     }

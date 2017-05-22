@@ -35,7 +35,7 @@ import java.util.logging.Logger;
  *
  * @author Jan Meznarič
  */
-@EeExtensionDef(name = "Service discovery with etcd API v2", type = EeExtensionType.DISCOVERY)
+@EeExtensionDef(name = "etcd", type = EeExtensionType.DISCOVERY)
 @EeComponentDependency(EeComponentType.CDI)
 public class Etcd2DiscoveryExtension implements Extension {
 
@@ -45,30 +45,9 @@ public class Etcd2DiscoveryExtension implements Extension {
     public void init(KumuluzServerWrapper kumuluzServerWrapper, EeConfig eeConfig) {
 
         log.info("Initialising service discovery.");
-
     }
 
     @Override
     public void load() {
-    }
-
-    @Override
-    public <T> Optional<T> getProperty(Class<T> aClass) {
-        return null;
-    }
-
-    @Override
-    public <T> Optional<T> getProperty(Class<T> aClass, String s) {
-        return null;
-    }
-
-    @Override
-    public <T> Optional<List<T>> getProperties(Class<T> aClass) {
-        return null;
-    }
-
-    @Override
-    public <T> Optional<List<T>> getProperties(Class<T> aClass, String s) {
-        return null;
     }
 }
