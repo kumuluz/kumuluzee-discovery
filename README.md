@@ -1,1 +1,158 @@
 # KumuluzEE Discovery
+[![Build Status](https://img.shields.io/travis/kumuluz/kumuluzee-discovery/master.svg?style=flat)](https://travis-ci.org/kumuluz/kumuluzee-discovery)
+
+> An open-source service discovery extension for the KumuluzEE framework
+
+KumuluzEE Discovery is a service discovery extension for the lightweight KumuluzEE framework. It provides support for
+service registration, service discovery and client side load balancing.
+
+KumuluzEE Discovery has been designed to support modularity with plugable service discovery frameworks. Currently, 
+only etcd API v2 is supported. In the future, other discovery frameworks will be supported too (contributions are 
+welcome).
+
+## Usage
+
+You can enable etcd service discovery by adding the following dependency:
+```xml
+<dependency>
+    <groupId>com.kumuluz.ee.discovery</groupId>
+    <artifactId>kumuluzee-discovery-etcd</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+#### Configuring etcd 
+
+Etcd is configured with the common KumuluzEE configuration framework. Configuration properties can be defined with 
+environment varialbse or in configuration file. For more details see the 
+[KumuluzEE configuration wiki page](https://github.com/kumuluz/kumuluzee/wiki/Configuration).
+
+To enable service registration in etcd, an odd number of etcd hosts must be specified with configuration key 
+`kumuluzee.config.etcd.hosts` in format
+`'http://192.168.99.100:2379,http://192.168.99.101:2379,http://192.168.99.102:2379'`.
+
+In etcd key-value store, services are registered following this schema:
+- key: `/environments/'environment'/services/'serviceName'/'serviceVersion'/instances/'automaticallyGeneratedInstanceId'/url`, 
+e.g. `/environments/dev/services/my-service/v0.01/instances/1491983746019/url`
+- value: service URL, e.g `http://localhost:8080`
+
+**Security**
+
+Etcd can be configured to support user authentication and client-to-server transport security with HTTPS. To access 
+authentication-enabled etcd host, username and password have to be defined with configuration keys 
+`kumuluzee.config.etcd.username` and `kumuluzee.config.etcd.password`. To enable transport security, follow 
+https://coreos.com/etcd/docs/latest/op-guide/security.html To access HTTPS-enabled etcd host, PEM certificate string
+have to be defined with configuration key `kumuluzee.config.etcd.ca`.
+
+Example of YAML configuration:
+
+```yaml
+kumuluzee:
+  env: test
+  version: 1.2.3
+  base-url: http://localhost:8081
+  port: 8081
+  discovery:
+    etcd:
+      hosts: http://127.0.0.1:2379
+    ttl: 30
+    ping-interval: 5
+```
+
+### Service registration
+
+To register service, service URL have to be provided with configuration key `kumuluzee.base-url` in format 
+`http://localhost:8080`. 
+
+Etcd supports registering different versions of a service in different environments. Environment can be set with 
+configuration key `kumuluzee.env`, default value is `dev`. Service version can be set with configuration key 
+`kumuluzee.version`, default value is `1.0.0`.
+
+Automatic service registration is enabled with annotation `@RegisterService` on class that extends 
+`javax.ws.rs.core.Application`. Annotation takes six parameters:
+
+- value: service name. Default value is fully classified class name.
+- ttl: time to live of a registration key in the store. Default value is 30 seconds.
+- pingInterval: an interval in which service updates registration key value in the store. Default value is 20.
+- environment: environment in which service is registered. Default value is "dev".
+- version: version of service to be registered. Default value is "1.0.0".
+- singleton: if true ensures, that only one instance of service with the same name, version and environment is
+registered. Default value is false.
+
+Example of service registration:
+```java
+@RegisterService(value = "my-service", ttl = 20, pingInterval = 15, environment = "test", version = "1.0.0", singleton = false)
+@ApplicationPath("/v1")
+public class RestApplication extends Application {
+}
+```
+
+### Service discovery
+
+Service discovery is implemented by injecting fields with annotation `@DiscoverService`, which takes three parameters:
+
+- value: name of the service we want to inject.
+- environment: service environment, e.g. prod, dev, test. Default value is 'dev'.
+- version: service version or NPM version range. Default value "1.0.0".
+
+Injection is supported for the following field types:
+
+- URL
+- String
+- WebTarget
+
+Example of service discovery in JAX-RS bean:
+```java
+@RequestScoped
+@Path("/")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class TestResource {
+
+    @Inject
+    @DiscoverService(value = "my-service", environment = "test", version = "1.0.0")
+    private URL url;
+
+    @Inject
+    @DiscoverService(value = "my-service", environment = "test", version = "1.0.0")
+    private String urlString;
+
+    @Inject
+    @DiscoverService(value = "my-service", environment = "test", version = "1.0.0")
+    private WebTarget webTarget;
+
+}
+```
+
+**NPM-like versioning**
+
+Etcd supports NPM-like versioning. If service is registered with version in
+NPM format, it can be discovered using a NPM range.
+Some examples:
+
+- "*" would discover the latest version in NPM format, registered with etcd
+- "^1.0.4" would discover the latest minor version in NPM format, registered with etcd
+- "~1.0.4" would discover the latest patch version in NPM format, registered with etcd
+
+
+For more information see [NPM semver documentation](http://docs.npmjs.com/misc/semver).
+
+## Changelog
+
+Recent changes can be viewed on Github on the [Releases Page](https://github.com/kumuluz/kumuluzee/releases)
+
+## Contribute
+
+See the [contributing docs](https://github.com/kumuluz/kumuluzee-discovery/blob/master/CONTRIBUTING.md)
+
+When submitting an issue, please follow the 
+[guidelines](https://github.com/kumuluz/kumuluzee-discovery/blob/master/CONTRIBUTING.md#bugs).
+
+When submitting a bugfix, write a test that exposes the bug and fails before applying your fix. Submit the test 
+alongside the fix.
+
+When submitting a new feature, add tests that cover the feature.
+
+## License
+
+MIT
