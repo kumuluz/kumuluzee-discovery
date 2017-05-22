@@ -123,5 +123,4 @@ public class RegisterServiceUtil {
             discoveryUtil.deregister();
         }
     }
-
 }

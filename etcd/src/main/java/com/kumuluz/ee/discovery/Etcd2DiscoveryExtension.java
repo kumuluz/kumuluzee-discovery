@@ -50,14 +50,11 @@ public class Etcd2DiscoveryExtension implements Extension {
 
     @Override
     public void load() {
-
     }
 
     @Override
     public <T> Optional<T> getProperty(Class<T> aClass) {
-
         return null;
-
     }
 
     @Override

@@ -43,5 +43,4 @@ public interface DiscoveryUtil {
 
     void disableServiceInstance(String serviceName, String version, String environment,
                                 URL url);
-
 }
