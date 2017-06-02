@@ -25,9 +25,10 @@ import com.kumuluz.ee.discovery.annotations.RegisterService;
 
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.context.Initialized;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.annotation.WebListener;
 import javax.ws.rs.core.Application;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +39,8 @@ import java.util.logging.Logger;
  * Interceptor class for RegisterService annotation.
  */
 @ApplicationScoped
-public class RegisterServiceUtil {
+@WebListener
+public class RegisterServiceUtil implements ServletContextListener {
 
     private static final Logger log = Logger.getLogger(RegisterServiceUtil.class.getName());
 
@@ -47,7 +49,8 @@ public class RegisterServiceUtil {
     @Inject
     private DiscoveryUtil discoveryUtil;
 
-    public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
+    @Override
+    public void contextInitialized(ServletContextEvent servletContextEvent) {
 
         List<Application> applications = new ArrayList<>();
 
@@ -122,5 +125,10 @@ public class RegisterServiceUtil {
         if (deregistratorEnabled) {
             discoveryUtil.deregister();
         }
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent servletContextEvent) {
+
     }
 }
