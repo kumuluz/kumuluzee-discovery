@@ -25,6 +25,8 @@ import com.kumuluz.ee.discovery.annotations.RegisterService;
 
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.Initialized;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -44,6 +46,7 @@ public class RegisterServiceUtil implements ServletContextListener {
 
     private static final Logger log = Logger.getLogger(RegisterServiceUtil.class.getName());
 
+    private boolean beanInitialised;
     private boolean deregistratorEnabled;
 
     @Inject
@@ -52,13 +55,32 @@ public class RegisterServiceUtil implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent servletContextEvent) {
 
+        if (!beanInitialised) {
+            beanInitialised = initialiseBean();
+        }
+
+    }
+
+    public void cdiInitialized(@Observes @Initialized(ApplicationScoped.class) Object init) {
+
+        if (!beanInitialised) {
+            beanInitialised = initialiseBean();
+        }
+
+    }
+
+    private boolean initialiseBean() {
+
         List<Application> applications = new ArrayList<>();
 
         ServiceLoader.load(Application.class).forEach(applications::add);
 
         for (Application application : applications) {
+            log.info("Registering JAX-RS application class: " + application.getClass().getSimpleName());
             registerService(application.getClass());
         }
+
+        return true;
     }
 
     /**
