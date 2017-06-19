@@ -65,8 +65,13 @@ public class DiscoverServiceProducer {
         String environment = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).environment();
         String version = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).version();
 
-        return getUrl(serviceName, environment, version).toString();
+        URL url = getUrl(serviceName, environment, version);
 
+        if (url != null) {
+            return url.toString();
+        } else {
+            return null;
+        }
     }
 
     @Produces
