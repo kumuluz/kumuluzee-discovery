@@ -1,11 +1,11 @@
 # KumuluzEE Discovery
 [![Build Status](https://img.shields.io/travis/kumuluz/kumuluzee-discovery/master.svg?style=flat)](https://travis-ci.org/kumuluz/kumuluzee-discovery)
 
-> Service discovery extension for the KumuluzEE microservice framework
+> Service discovery extension for the KumuluzEE microservice framework. Service registration, service discovery and client side load balancing with full support for Docker and Kubernetes cluster.
 
 KumuluzEE Discovery is a service discovery extension for the KumuluzEE microservice framework. It provides support for service registration, service discovery and client side load balancing.
-
-KumuluzEE Discovery has been designed to support modularity with plugable service discovery frameworks. Currently, etcd is supported. In the future, other discovery frameworks will be supported too (contributions are welcome).
+KumuluzEE Discovery provides full support for microservices packed as Docker containers. It also provides full support for executing microservices in clusters and cloud-native platforms with full support for Kubernetes. 
+KumuluzEE Discovery has been designed to support modularity with pluggable service discovery frameworks. Currently, etcd is supported. In the future, other discovery frameworks will be supported too (contributions are welcome).
 
 ## Usage
 
@@ -131,6 +131,19 @@ Some examples:
 
 
 For more information see [NPM semver documentation](http://docs.npmjs.com/misc/semver).
+
+### Cluster, cloud-native platforms and Kubernetes
+
+KumuluzEE Discovery is fully compatible with clusters and cloud-native platforms. It has been extensively tested with Kubernetes.
+If you are running your services in cluster (for example Kubernetes), you should specify the cluster id in the
+configuration key `kumuluzee.discovery.cluster`. Cluster id should be the same for every service running in the same
+cluster.
+
+Services running in the same cluster will be discovered by their container IP. Services accessing your service from
+outside the cluster will discover your service by its base url (`kumuluzee.baseurl`).
+
+Container IP is automatically acquired when you run the service.
+If you want to override it, you can do so by specifying configuration key `kumuluzee.containerurl`.
 
 ## Changelog
 

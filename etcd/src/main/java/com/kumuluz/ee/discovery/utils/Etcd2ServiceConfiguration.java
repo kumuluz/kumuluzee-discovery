@@ -34,18 +34,22 @@ public class Etcd2ServiceConfiguration {
     private int ttl;
     private boolean singleton;
     private String baseUrl;
+    private String containerUrl;
+    private String clusterId;
 
     private String serviceInstanceKey;
     private String serviceKeyUrl;
 
     public Etcd2ServiceConfiguration(String serviceName, String serviceVersion, String environment, int ttl,
-                                     boolean singleton, String baseUrl) {
+                                     boolean singleton, String baseUrl, String containerUrl, String clusterId) {
         this.serviceName = serviceName;
         this.serviceVersion = serviceVersion;
         this.environment = environment;
         this.ttl = ttl;
         this.singleton = singleton;
         this.baseUrl = baseUrl;
+        this.containerUrl = containerUrl;
+        this.clusterId = clusterId;
 
         this.serviceInstanceKey = Etcd2Utils.getServiceKeyInstance(this.environment, this.serviceName,
                 this.serviceVersion, String.valueOf(new Date().getTime()));
@@ -75,6 +79,14 @@ public class Etcd2ServiceConfiguration {
 
     public String getBaseUrl() {
         return baseUrl;
+    }
+
+    public String getContainerUrl() {
+        return containerUrl;
+    }
+
+    public String getClusterId() {
+        return this.clusterId;
     }
 
     public String getServiceInstanceKey() {

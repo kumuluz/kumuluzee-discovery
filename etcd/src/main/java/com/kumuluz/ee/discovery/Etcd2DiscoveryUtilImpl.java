@@ -21,10 +21,7 @@
 package com.kumuluz.ee.discovery;
 
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
-import com.kumuluz.ee.discovery.utils.DiscoveryUtil;
-import com.kumuluz.ee.discovery.utils.Etcd2ServiceConfiguration;
-import com.kumuluz.ee.discovery.utils.Etcd2Utils;
-import com.kumuluz.ee.discovery.utils.HostAddressComparator;
+import com.kumuluz.ee.discovery.utils.*;
 import com.vdurmont.semver4j.Requirement;
 import com.vdurmont.semver4j.Semver;
 import com.vdurmont.semver4j.SemverException;
@@ -70,10 +67,12 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
     private int lastInstanceServedIndex;
 
-    private Map<String, Map<String, URL>> serviceInstances;
+    private Map<String, Map<String, Etcd2Service>> serviceInstances;
     private Map<String, List<String>> serviceVersions;
 
     private EtcdClient etcd;
+
+    private String clusterId;
 
     @PostConstruct
     public void init() {
@@ -159,6 +158,8 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     "kumuluzee.discovery.etcd.hosts in format " +
                     "http://192.168.99.100:2379,http://192.168.99.101:2379,http://192.168.99.102:2379");
         }
+
+        this.clusterId = configurationUtil.get("kumuluzee.discovery.cluster").orElse(null);
     }
 
     @Override
@@ -175,7 +176,27 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 baseUrl = null;
             }
         }
-        if (baseUrl == null || baseUrl.isEmpty()) {
+        if(baseUrl == null) {
+            baseUrl = configurationUtil.get("kumuluzee.baseurl").orElse(null);
+            if(baseUrl != null) {
+                try {
+                    baseUrl = new URL(baseUrl).toString();
+                } catch (MalformedURLException e) {
+                    log.severe("Cannot parse kumuluzee.baseurl. Exception: " + e.toString());
+                    baseUrl = null;
+                }
+            }
+        }
+        String containerUrl = configurationUtil.get("kumuluzee.containerurl").orElse(null);
+        if(containerUrl != null) {
+            try {
+                containerUrl = new URL(containerUrl).toString();
+            } catch (MalformedURLException e) {
+                log.severe("Cannot parse kumuluzee.containerurl. Exception: " + e.toString());
+                containerUrl = null;
+            }
+        }
+        if (this.clusterId != null || baseUrl == null || baseUrl.isEmpty()) {
             // try to find my ip address
             List<InetAddress> interfaceAddresses = new ArrayList<>();
             try {
@@ -205,19 +226,30 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     log.severe("Cannot parse URL. Exception: " + e.toString());
                 }
             }
-            if(ipUrl != null) {
-                log.warning("No service URL provided, using ULR " + ipUrl.toString() +
-                        ". You should probably set service URL with configuration key kumuluzee.base-url");
-                baseUrl = ipUrl.toString();
-            } else {
-                log.severe("No service URL provided or found." +
-                        "Set service URL with configuration key kumuluzee.base-url");
-                return;
+            if(this.clusterId != null) {
+                if(containerUrl == null && ipUrl != null) {
+                    containerUrl = ipUrl.toString();
+                } else if(containerUrl == null) {
+                    log.severe("No container URL found, but running in container. All services will use service" +
+                            "URL. You can set container URL with configuration key kumuluzee.containerurl");
+                }
+            }
+            if(baseUrl == null || baseUrl.isEmpty()) {
+                if (ipUrl != null) {
+                    log.warning("No service URL provided, using ULR " + ipUrl.toString() +
+                            ". You should probably set service URL with configuration key kumuluzee.base-url or " +
+                            "kumuluzee.baseurl");
+                    baseUrl = ipUrl.toString();
+                } else {
+                    log.severe("No service URL provided or found." +
+                            "Set service URL with configuration key kumuluzee.base-url or kumuluzee.baseurl");
+                    return;
+                }
             }
         }
 
         Etcd2ServiceConfiguration serviceConfiguration = new Etcd2ServiceConfiguration(serviceName, version,
-                environment, (int)ttl, singleton, baseUrl);
+                environment, (int)ttl, singleton, baseUrl, containerUrl, this.clusterId);
 
         this.registeredServices.add(serviceConfiguration);
 
@@ -254,17 +286,29 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(etcd, Etcd2Utils.getServiceKeyInstances
                     (environment, serviceName, version));
 
-            HashMap<String, URL> serviceUrls = new HashMap<>();
+            HashMap<String, Etcd2Service> serviceUrls = new HashMap<>();
             if (etcdKeysResponse != null) {
                 for (EtcdKeysResponse.EtcdNode node : etcdKeysResponse.getNode().getNodes()) {
 
                     String url = null;
+                    String containerUrlString = null;
+                    String clusterId = null;
                     boolean isActive = true;
                     for (EtcdKeysResponse.EtcdNode instanceNode : node.getNodes()) {
 
                         if ("url".equals(Etcd2Utils.getLastKeyLayer(instanceNode.getKey())) &&
                                 instanceNode.getValue() != null) {
                             url = instanceNode.getValue();
+                        }
+
+                        if ("containerUrl".equals(Etcd2Utils.getLastKeyLayer(instanceNode.getKey())) &&
+                                instanceNode.getValue() != null) {
+                            containerUrlString = instanceNode.getValue();
+                        }
+
+                        if ("clusterId".equals(Etcd2Utils.getLastKeyLayer(instanceNode.getKey())) &&
+                                instanceNode.getValue() != null && !instanceNode.getValue().isEmpty()) {
+                            clusterId = instanceNode.getValue();
                         }
 
                         if ("status".equals(Etcd2Utils.getLastKeyLayer(instanceNode.getKey())) &&
@@ -275,7 +319,10 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     }
                     if (isActive && url != null) {
                         try {
-                            serviceUrls.put(node.getKey() + "/url", new URL(url));
+                            URL containerUrl = (containerUrlString == null || containerUrlString.isEmpty()) ?
+                                    null : new URL(containerUrlString);
+                            serviceUrls.put(node.getKey() + "/url",
+                                    new Etcd2Service(new URL(url), containerUrl, clusterId));
                         } catch (MalformedURLException e) {
                             log.severe("Malformed URL exception: " + e.toString());
                         }
@@ -292,13 +339,26 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             }
 
             List<URL> instances = new LinkedList<>();
-            instances.addAll(serviceUrls.values());
+            for(Etcd2Service service : serviceUrls.values()) {
+                if(this.clusterId != null && this.clusterId.equals(service.getClusterId())) {
+                    instances.add(service.getContainerUrl());
+                } else {
+                    instances.add(service.getBaseUrl());
+                }
+            }
             return Optional.of(instances);
 
         } else {
 
             List<URL> instances = new LinkedList<>();
-            instances.addAll(this.serviceInstances.get(serviceName + "_" + version + "_" + environment).values());
+            for(Etcd2Service service : this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                    .values()) {
+                if(this.clusterId != null && this.clusterId.equals(service.getClusterId())) {
+                    instances.add(service.getContainerUrl());
+                } else {
+                    instances.add(service.getBaseUrl());
+                }
+            }
             return Optional.of(instances);
 
         }
@@ -348,14 +408,28 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
                         String url = null;
                         String status = null;
+                        String containerUrlString = null;
+                        String clusterId = null;
 
                         for (EtcdKeysResponse.EtcdNode node : instanceNode.getNodes()) {
 
-                            if ("url".equals(Etcd2Utils.getLastKeyLayer(node.getKey()))) {
+                            if ("url".equals(Etcd2Utils.getLastKeyLayer(node.getKey())) &&
+                                    node.getValue() != null) {
                                 url = node.getValue();
                             }
 
-                            if ("status".equals(Etcd2Utils.getLastKeyLayer(node.getKey()))) {
+                            if ("containerUrl".equals(Etcd2Utils.getLastKeyLayer(node.getKey())) &&
+                                    node.getValue() != null) {
+                                containerUrlString = node.getValue();
+                            }
+
+                            if ("clusterId".equals(Etcd2Utils.getLastKeyLayer(node.getKey())) &&
+                                    node.getValue() != null && !node.getValue().isEmpty()) {
+                                clusterId = node.getValue();
+                            }
+
+                            if ("status".equals(Etcd2Utils.getLastKeyLayer(node.getKey())) &&
+                                    node.getValue() != null) {
                                 status = node.getValue();
                             }
                         }
@@ -370,8 +444,11 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                                     this.serviceInstances.put(serviceName + "_" + version + "_" + environment,
                                             new HashMap<>());
                                 }
+                                URL containerUrl = (containerUrlString == null || containerUrlString.isEmpty()) ?
+                                        null : new URL(containerUrlString);
                                 this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
-                                        .put(instanceNode.getKey() + "/url", new URL(url));
+                                        .put(instanceNode.getKey() + "/url",
+                                                new Etcd2Service(new URL(url), containerUrl, clusterId));
                             } catch (MalformedURLException e) {
                                 log.severe("Malformed URL exception: " + e.toString());
                             }
@@ -461,13 +538,92 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                                     this.serviceInstances.put(serviceName + "_" + version + "_" + environment,
                                             new HashMap<>());
                                 }
+                                Etcd2Service etcd2Service = new Etcd2Service(new URL(node.getValue()), null,
+                                        null);
+                                if(this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                        .containsKey(node.getKey())) {
+                                    etcd2Service.setContainerUrl(this.serviceInstances.get(serviceName + "_" + version
+                                            + "_" + environment).get(node.getKey()).getContainerUrl());
+                                    etcd2Service.setClusterId(this.serviceInstances.get(serviceName + "_" + version
+                                            + "_" + environment).get(node.getKey()).getClusterId());
+                                }
                                 this.serviceInstances.get(serviceName + "_" + version + "_" + environment).put(node
-                                        .getKey(), new URL(node.getValue()));
+                                        .getKey(), etcd2Service);
                             } catch (MalformedURLException e) {
                                 log.severe("Malformed URL exception: " + e.toString());
                             }
                         }
 
+                    }
+
+                    // container url added or deleted
+                    if ("containerUrl".equals(Etcd2Utils.getLastKeyLayer(node.getKey()))) {
+                        if (node.getValue() == null) {
+                            Etcd2Service service = this.serviceInstances.get(serviceName + "_" + version + "_" +
+                                    environment).get(getKeyOneLayerUp(node.getKey()) + "url");
+                            if(service != null) {
+                                log.info("Service container url deleted: " + node.getKey());
+                                service.setContainerUrl(null);
+                                this.serviceInstances.get(serviceName + "_" + version + "_" +
+                                        environment).put(getKeyOneLayerUp(node.getKey()) + "url", service);
+                            }
+                        } else {
+                            log.info("Service container url added: " + node.getKey() + " Value: " + node.getValue());
+                            try {
+                                if (!this.serviceInstances.containsKey(serviceName + "_" + version + "_" +
+                                        environment)) {
+                                    this.serviceInstances.put(serviceName + "_" + version + "_" + environment,
+                                            new HashMap<>());
+                                }
+                                String instanceMapKey = getKeyOneLayerUp(node.getKey()) + "url";
+                                Etcd2Service etcd2Service = new Etcd2Service(null, new URL(node.getValue()),
+                                        null);
+                                if(this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                        .containsKey(instanceMapKey)) {
+                                    etcd2Service.setBaseUrl(this.serviceInstances.get(serviceName + "_" + version
+                                            + "_" + environment).get(instanceMapKey).getBaseUrl());
+                                    etcd2Service.setClusterId(this.serviceInstances.get(serviceName + "_" + version
+                                            + "_" + environment).get(instanceMapKey).getClusterId());
+                                }
+                                this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                        .put(instanceMapKey, etcd2Service);
+                            } catch (MalformedURLException e) {
+                                log.severe("Malformed URL exception: " + e.toString());
+                            }
+                        }
+                    }
+
+                    if ("clusterId".equals(Etcd2Utils.getLastKeyLayer(node.getKey()))) {
+                        if (node.getValue() == null) {
+                            Etcd2Service service = this.serviceInstances.get(serviceName + "_" + version + "_" +
+                                    environment).get(getKeyOneLayerUp(node.getKey()) + "url");
+                            if(service != null) {
+                                log.info("Service container id deleted: " + node.getKey());
+                                service.setClusterId(null);
+                                this.serviceInstances.get(serviceName + "_" + version + "_" +
+                                        environment).put(getKeyOneLayerUp(node.getKey()) + "url", service);
+                            }
+                        } else {
+                            log.info("Service container id added: " + node.getKey() + " Value: " + node.getValue());
+
+                            if (!this.serviceInstances.containsKey(serviceName + "_" + version + "_" +
+                                    environment)) {
+                                this.serviceInstances.put(serviceName + "_" + version + "_" + environment,
+                                        new HashMap<>());
+                            }
+                            String instanceMapKey = getKeyOneLayerUp(node.getKey()) + "url";
+                            Etcd2Service etcd2Service = new Etcd2Service(null, null,
+                                    node.getValue());
+                            if(this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                    .containsKey(instanceMapKey)) {
+                                etcd2Service.setBaseUrl(this.serviceInstances.get(serviceName + "_" + version
+                                        + "_" + environment).get(instanceMapKey).getBaseUrl());
+                                etcd2Service.setContainerUrl(this.serviceInstances.get(serviceName + "_" + version
+                                        + "_" + environment).get(instanceMapKey).getContainerUrl());
+                            }
+                            this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                    .put(instanceMapKey, etcd2Service);
+                        }
                     }
 
                     // status has changed: set to disabled

@@ -28,7 +28,6 @@ import mousio.etcd4j.responses.EtcdException;
 import mousio.etcd4j.responses.EtcdKeysResponse;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
@@ -91,6 +90,14 @@ public class Etcd2Registrator implements Runnable {
                     etcd.putDir(this.serviceConfig.getServiceInstanceKey()).ttl(this.serviceConfig.getTtl())
                             .send().get();
                     etcd.put(this.serviceConfig.getServiceKeyUrl(), this.serviceConfig.getBaseUrl()).send().get();
+                    if(this.serviceConfig.getContainerUrl() != null) {
+                        etcd.put(this.serviceConfig.getServiceInstanceKey() + "/containerUrl",
+                                this.serviceConfig.getContainerUrl()).send().get();
+                    }
+                    if(this.serviceConfig.getClusterId() != null) {
+                        etcd.put(this.serviceConfig.getServiceInstanceKey() + "/clusterId",
+                                this.serviceConfig.getClusterId()).send().get();
+                    }
 
                     this.isRegistered = true;
                 } catch (IOException e) {
