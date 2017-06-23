@@ -87,8 +87,10 @@ public class RestApplication extends Application {
 Service discovery is implemented by injecting fields with the annotation `@DiscoverService`, which takes three parameters:
 
 - value: name of the service we want to inject.
-- environment: service environment, e.g. prod, dev, test. Default value is 'dev'.
-- version: service version or NPM version range. Default value "1.0.0".
+- environment: service environment, e.g. prod, dev, test. If value is not provided, environment is set to the value 
+defined with the configuration key `kumuluzee.env`. If the configuration key is not present, value is set to `dev`.
+- version: service version or NPM version range. Default value is "*", which resolves to the highest deployed 
+version (see chapter [NPM-like versioning](#npm-versioning)).
 
 Injection is supported for the following field types:
 
@@ -119,7 +121,7 @@ public class TestResource {
 }
 ```
 
-**NPM-like versioning**
+**<a name="npm-versioning"></a>NPM-like versioning**
 
 Etcd supports NPM-like versioning. If service is registered with version in
 NPM format, it can be discovered using a NPM range.

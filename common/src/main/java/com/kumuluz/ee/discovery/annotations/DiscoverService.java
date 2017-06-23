@@ -40,7 +40,7 @@ import java.lang.annotation.Target;
 public @interface DiscoverService {
     @Nonbinding String value() default "";
 
-    @Nonbinding String environment() default "dev";
+    @Nonbinding String environment() default "";
 
-    @Nonbinding String version() default "1.0.0";
+    @Nonbinding String version() default "*";
 }
