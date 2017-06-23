@@ -26,8 +26,6 @@ import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.common.dependencies.*;
 import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
 
-import java.util.List;
-import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
@@ -36,7 +34,10 @@ import java.util.logging.Logger;
  * @author Jan Meznarič
  */
 @EeExtensionDef(name = "etcd", type = EeExtensionType.DISCOVERY)
-@EeComponentDependency(EeComponentType.CDI)
+@EeComponentDependencies({
+        @EeComponentDependency(EeComponentType.SERVLET),
+        @EeComponentDependency(EeComponentType.CDI)
+})
 public class Etcd2DiscoveryExtension implements Extension {
 
     private static final Logger log = Logger.getLogger(Etcd2DiscoveryExtension.class.getName());
