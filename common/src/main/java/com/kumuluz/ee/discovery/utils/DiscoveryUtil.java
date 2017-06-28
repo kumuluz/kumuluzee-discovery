@@ -20,6 +20,8 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
+import com.kumuluz.ee.discovery.enums.AccessType;
+
 import java.net.URL;
 import java.util.List;
 import java.util.Optional;
@@ -34,10 +36,10 @@ public interface DiscoveryUtil {
 
     void deregister();
 
-    Optional<List<URL>> getServiceInstances(String serviceName, String version, String
-            environment);
+    Optional<List<URL>> getServiceInstances(String serviceName, String version, String environment,
+                                            AccessType accessType);
 
-    Optional<URL> getServiceInstance(String serviceName, String version, String environment);
+    Optional<URL> getServiceInstance(String serviceName, String version, String environment, AccessType accessType);
 
     Optional<List<String>> getServiceVersions(String serviceName, String environment);
 

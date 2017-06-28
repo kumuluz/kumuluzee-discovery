@@ -18,34 +18,12 @@
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
 */
-package com.kumuluz.ee.discovery.annotations;
-
-import com.kumuluz.ee.discovery.enums.AccessType;
-
-import javax.enterprise.util.Nonbinding;
-import javax.inject.Qualifier;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+package com.kumuluz.ee.discovery.enums;
 
 /**
- * Annotation for injecting service URL
- * <p>
- * value - service name
- * environment - service environment
- * version - service version
+ * @author Jan Meznarič, Urban Malc
  */
-@Qualifier
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD, ElementType.METHOD})
-public @interface DiscoverService {
-
-    @Nonbinding String value() default "";
-
-    @Nonbinding String environment() default "";
-
-    @Nonbinding String version() default "*";
-
-    @Nonbinding AccessType accessType() default AccessType.GATEWAY;
+public enum AccessType {
+    GATEWAY,
+    DIRECT
 }
