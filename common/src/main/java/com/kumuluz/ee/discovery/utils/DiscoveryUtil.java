@@ -43,6 +43,5 @@ public interface DiscoveryUtil {
 
     Optional<List<String>> getServiceVersions(String serviceName, String environment);
 
-    void disableServiceInstance(String serviceName, String version, String environment,
-                                URL url);
+    void disableServiceInstance(String serviceName, String version, String environment, URL url);
 }

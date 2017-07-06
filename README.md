@@ -91,8 +91,8 @@ Service discovery is implemented by injecting fields with the annotation `@Disco
 defined with the configuration key `kumuluzee.env`. If the configuration key is not present, value is set to `dev`.
 - version: service version or NPM version range. Default value is "*", which resolves to the highest deployed 
 version (see chapter [NPM-like versioning](#npm-versioning)).
-- accessType: controls, which URL gets injected. Supported values are `AccessType.GATEWAY` and `AccessType.DIRECT`.
-Default is `AccessType.GATEWAY`. See chapter [Access Types](#access-types) for more information.
+- accessType: defines, which URL gets injected. Supported values are `AccessType.GATEWAY` and `AccessType.DIRECT`.
+Default is `AccessType.GATEWAY`. See section [Access Types](#access-types) for more information.
 
 Injection is supported for the following field types:
 
@@ -123,6 +123,16 @@ public class TestResource {
 }
 ```
 
+**<a name="access-types"></a>Access Types**
+
+Service discovery supports two access types:
+- `AccessType.GATEWAY` returns gateway URL, if it is present. If not, behavior is the same as with `AccessType.DIRECT`.
+- `AccessType.DIRECT` always returns base URL or container URL.
+
+Gateway URL is read from etcd key-value store used for service discovery. It is stored in key 
+`/environments/'environment'/services/'serviceName'/'serviceVersion'/gatewayUrl` and is automatically updated, if 
+value in changes.
+
 **<a name="npm-versioning"></a>NPM-like versioning**
 
 Etcd supports NPM-like versioning. If service is registered with version in
@@ -135,15 +145,6 @@ Some examples:
 
 
 For more information see [NPM semver documentation](http://docs.npmjs.com/misc/semver).
-
-**<a name="access-types"></a>Access Types**
-
-Etcd supports two access types:
-- `AccessType.GATEWAY` always returns gateway URL, if it is present. If not, behavior is the same as `AccessType.DIRECT`.
-- `AccessType.DIRECT` returns base URL or container URL, even if gateway URL is present.
-
-Gateway URL is read from etcd key `/environments/'environment'/services/'serviceName'/'serviceVersion'/gatewayUrl` and
-is automatically updated, if value in etcd changes.
 
 ### Cluster, cloud-native platforms and Kubernetes
 

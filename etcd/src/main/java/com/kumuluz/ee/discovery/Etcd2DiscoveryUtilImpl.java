@@ -171,7 +171,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
         // get service URL
         String baseUrl = configurationUtil.get("kumuluzee.base-url").orElse(null);
-        if(baseUrl != null) {
+        if (baseUrl != null) {
             try {
                 baseUrl = new URL(baseUrl).toString();
             } catch (MalformedURLException e) {
@@ -179,9 +179,9 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 baseUrl = null;
             }
         }
-        if(baseUrl == null) {
+        if (baseUrl == null) {
             baseUrl = configurationUtil.get("kumuluzee.baseurl").orElse(null);
-            if(baseUrl != null) {
+            if (baseUrl != null) {
                 try {
                     baseUrl = new URL(baseUrl).toString();
                 } catch (MalformedURLException e) {
@@ -191,7 +191,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             }
         }
         String containerUrl = configurationUtil.get("kumuluzee.containerurl").orElse(null);
-        if(containerUrl != null) {
+        if (containerUrl != null) {
             try {
                 containerUrl = new URL(containerUrl).toString();
             } catch (MalformedURLException e) {
@@ -204,10 +204,10 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             List<InetAddress> interfaceAddresses = new ArrayList<>();
             try {
                 Enumeration<NetworkInterface> niEnum = NetworkInterface.getNetworkInterfaces();
-                while(niEnum.hasMoreElements()) {
+                while (niEnum.hasMoreElements()) {
                     NetworkInterface ni = niEnum.nextElement();
                     Enumeration<InetAddress> inetEnum = ni.getInetAddresses();
-                    while(inetEnum.hasMoreElements()) {
+                    while (inetEnum.hasMoreElements()) {
                         interfaceAddresses.add(inetEnum.nextElement());
                     }
                 }
@@ -217,7 +217,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             interfaceAddresses.sort(new HostAddressComparator());
             URL ipUrl = null;
             String servicePort = configurationUtil.get("port").orElse("8080");
-            for(int i = 0; i < interfaceAddresses.size() && ipUrl == null; i++) {
+            for (int i = 0; i < interfaceAddresses.size() && ipUrl == null; i++) {
                 InetAddress addr = interfaceAddresses.get(i);
                 try {
                     if (addr instanceof Inet4Address) {
@@ -229,15 +229,15 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     log.severe("Cannot parse URL. Exception: " + e.toString());
                 }
             }
-            if(this.clusterId != null) {
-                if(containerUrl == null && ipUrl != null) {
+            if (this.clusterId != null) {
+                if (containerUrl == null && ipUrl != null) {
                     containerUrl = ipUrl.toString();
-                } else if(containerUrl == null) {
+                } else if (containerUrl == null) {
                     log.severe("No container URL found, but running in container. All services will use service" +
                             "URL. You can set container URL with configuration key kumuluzee.containerurl");
                 }
             }
-            if(baseUrl == null || baseUrl.isEmpty()) {
+            if (baseUrl == null || baseUrl.isEmpty()) {
                 if (ipUrl != null) {
                     log.warning("No service URL provided, using ULR " + ipUrl.toString() +
                             ". You should probably set service URL with configuration key kumuluzee.base-url or " +
@@ -252,7 +252,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         }
 
         Etcd2ServiceConfiguration serviceConfiguration = new Etcd2ServiceConfiguration(serviceName, version,
-                environment, (int)ttl, singleton, baseUrl, containerUrl, this.clusterId);
+                environment, (int) ttl, singleton, baseUrl, containerUrl, this.clusterId);
 
         this.registeredServices.add(serviceConfiguration);
 
@@ -265,7 +265,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     public void deregister() {
 
         if (etcd != null) {
-            for(Etcd2ServiceConfiguration serviceConfiguration : this.registeredServices) {
+            for (Etcd2ServiceConfiguration serviceConfiguration : this.registeredServices) {
                 log.info("Deregistering service with etcd. Service name: " + serviceConfiguration.getServiceName() +
                         " Service ID: " + serviceConfiguration.getServiceKeyUrl());
 
@@ -344,7 +344,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             List<URL> instances = new LinkedList<>();
 
             URL gatewayUrl = getGatewayUrl(serviceName, version, environment);
-            if(accessType == AccessType.GATEWAY && gatewayUrl != null && serviceUrls.size() > 0) {
+            if (accessType == AccessType.GATEWAY && gatewayUrl != null && serviceUrls.size() > 0) {
                 instances.add(gatewayUrl);
             } else {
                 for (Etcd2Service service : serviceUrls.values()) {
@@ -362,7 +362,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             List<URL> instances = new LinkedList<>();
 
             URL gatewayUrl = getGatewayUrl(serviceName, version, environment);
-            if(accessType == AccessType.GATEWAY && gatewayUrl != null &&
+            if (accessType == AccessType.GATEWAY && gatewayUrl != null &&
                     this.serviceInstances.get(serviceName + "_" + version + "_" + environment).size() > 0) {
                 instances.add(gatewayUrl);
             } else {
@@ -382,7 +382,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     }
 
     private URL getGatewayUrl(String serviceName, String version, String environment) {
-        if(!this.gatewayUrls.containsKey(serviceName + "_" + version + "_" + environment)) {
+        if (!this.gatewayUrls.containsKey(serviceName + "_" + version + "_" + environment)) {
             URL gatewayUrl = null;
 
             long index = 0;
@@ -398,7 +398,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 log.info("IO Exception. Cannot read given key: " + e);
             } catch (EtcdException e) {
                 // ignore key not found exception
-                if(e.getErrorCode() != 100) {
+                if (e.getErrorCode() != 100) {
                     log.info("Etcd exception. " + e);
                 }
             } catch (EtcdAuthenticationException e) {
@@ -491,7 +491,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
                             // active instance, add to buffer
                             try {
-                                if(!this.serviceInstances.containsKey(serviceName + "_" + version + "_" +
+                                if (!this.serviceInstances.containsKey(serviceName + "_" + version + "_" +
                                         environment)) {
                                     this.serviceInstances.put(serviceName + "_" + version + "_" + environment,
                                             new HashMap<>());
@@ -592,7 +592,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                                 }
                                 Etcd2Service etcd2Service = new Etcd2Service(new URL(node.getValue()), null,
                                         null);
-                                if(this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                if (this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
                                         .containsKey(node.getKey())) {
                                     etcd2Service.setContainerUrl(this.serviceInstances.get(serviceName + "_" + version
                                             + "_" + environment).get(node.getKey()).getContainerUrl());
@@ -613,7 +613,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                         if (node.getValue() == null) {
                             Etcd2Service service = this.serviceInstances.get(serviceName + "_" + version + "_" +
                                     environment).get(getKeyOneLayerUp(node.getKey()) + "url");
-                            if(service != null) {
+                            if (service != null) {
                                 log.info("Service container url deleted: " + node.getKey());
                                 service.setContainerUrl(null);
                                 this.serviceInstances.get(serviceName + "_" + version + "_" +
@@ -630,7 +630,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                                 String instanceMapKey = getKeyOneLayerUp(node.getKey()) + "url";
                                 Etcd2Service etcd2Service = new Etcd2Service(null, new URL(node.getValue()),
                                         null);
-                                if(this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                if (this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
                                         .containsKey(instanceMapKey)) {
                                     etcd2Service.setBaseUrl(this.serviceInstances.get(serviceName + "_" + version
                                             + "_" + environment).get(instanceMapKey).getBaseUrl());
@@ -649,7 +649,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                         if (node.getValue() == null) {
                             Etcd2Service service = this.serviceInstances.get(serviceName + "_" + version + "_" +
                                     environment).get(getKeyOneLayerUp(node.getKey()) + "url");
-                            if(service != null) {
+                            if (service != null) {
                                 log.info("Service container id deleted: " + node.getKey());
                                 service.setClusterId(null);
                                 this.serviceInstances.get(serviceName + "_" + version + "_" +
@@ -666,7 +666,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                             String instanceMapKey = getKeyOneLayerUp(node.getKey()) + "url";
                             Etcd2Service etcd2Service = new Etcd2Service(null, null,
                                     node.getValue());
-                            if(this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                            if (this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
                                     .containsKey(instanceMapKey)) {
                                 etcd2Service.setBaseUrl(this.serviceInstances.get(serviceName + "_" + version
                                         + "_" + environment).get(instanceMapKey).getBaseUrl());
