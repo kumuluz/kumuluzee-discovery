@@ -84,13 +84,15 @@ public class RestApplication extends Application {
 
 ### Service discovery
 
-Service discovery is implemented by injecting fields with the annotation `@DiscoverService`, which takes three parameters:
+Service discovery is implemented by injecting fields with the annotation `@DiscoverService`, which takes four parameters:
 
 - value: name of the service we want to inject.
 - environment: service environment, e.g. prod, dev, test. If value is not provided, environment is set to the value 
 defined with the configuration key `kumuluzee.env`. If the configuration key is not present, value is set to `dev`.
 - version: service version or NPM version range. Default value is "*", which resolves to the highest deployed 
 version (see chapter [NPM-like versioning](#npm-versioning)).
+- accessType: defines, which URL gets injected. Supported values are `AccessType.GATEWAY` and `AccessType.DIRECT`.
+Default is `AccessType.GATEWAY`. See section [Access Types](#access-types) for more information.
 
 Injection is supported for the following field types:
 
@@ -120,6 +122,16 @@ public class TestResource {
 
 }
 ```
+
+**<a name="access-types"></a>Access Types**
+
+Service discovery supports two access types:
+- `AccessType.GATEWAY` returns gateway URL, if it is present. If not, behavior is the same as with `AccessType.DIRECT`.
+- `AccessType.DIRECT` always returns base URL or container URL.
+
+Gateway URL is read from etcd key-value store used for service discovery. It is stored in key 
+`/environments/'environment'/services/'serviceName'/'serviceVersion'/gatewayUrl` and is automatically updated, if 
+value in changes.
 
 **<a name="npm-versioning"></a>NPM-like versioning**
 

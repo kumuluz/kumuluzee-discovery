@@ -22,6 +22,7 @@ package com.kumuluz.ee.discovery.utils;
 
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.annotations.DiscoverService;
+import com.kumuluz.ee.discovery.enums.AccessType;
 
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.inject.Produces;
@@ -90,6 +91,7 @@ public class DiscoverServiceProducer {
         String serviceName = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).value();
         String environment = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).environment();
         String version = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).version();
+        AccessType accessType = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).accessType();
 
         if (environment.isEmpty()) {
             environment = ConfigurationUtil.getInstance().get("kumuluzee.env").orElse("dev");
@@ -98,7 +100,7 @@ public class DiscoverServiceProducer {
         log.info("Initializing field for service: " + serviceName + " version: " + version + " environment: " +
                 environment);
 
-        Optional<URL> serviceUrl = discoveryUtil.getServiceInstance(serviceName, version, environment);
+        Optional<URL> serviceUrl = discoveryUtil.getServiceInstance(serviceName, version, environment, accessType);
 
         return serviceUrl.orElse(null);
 
