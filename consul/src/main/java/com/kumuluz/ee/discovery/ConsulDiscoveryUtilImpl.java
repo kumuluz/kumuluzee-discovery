@@ -198,13 +198,13 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                     urlList.add(consulService.getServiceUrl());
                 }
             }
-        }
 
-        if(accessType == AccessType.GATEWAY && urlList.size() > 0) {
-            URL gatewayUrl = getGatewayUrl(serviceName, version, environment);
-            if(gatewayUrl != null) {
-                urlList = new LinkedList<>();
-                urlList.add(gatewayUrl);
+            if(accessType == AccessType.GATEWAY && urlList.size() > 0) {
+                URL gatewayUrl = getGatewayUrl(serviceName, resolvedVersion, environment);
+                if(gatewayUrl != null) {
+                    urlList = new LinkedList<>();
+                    urlList.add(gatewayUrl);
+                }
             }
         }
 
@@ -227,6 +227,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
             } catch (MalformedURLException e) {
                 log.severe("Malformed URL exception: " + e.getLocalizedMessage());
             }
+            this.gatewayUrls.put(serviceName + "_" + version + "_" + environment, gatewayUrl);
 
             // add watch to key
             ConsulResponseCallback<com.google.common.base.Optional<Value>> callback = new ConsulResponseCallback<com
