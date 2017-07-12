@@ -24,6 +24,7 @@ import com.vdurmont.semver4j.Requirement;
 import com.vdurmont.semver4j.Semver;
 import com.vdurmont.semver4j.SemverException;
 
+import java.net.URL;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -32,7 +33,9 @@ import java.util.Optional;
 /**
  * @author Jan Meznarič, Urban Malc
  */
-public class VersionUtils {
+public class CommonUtils {
+
+    private static int lastInstanceServedIndex;
 
     public static String determineVersion(DiscoveryUtil discoveryUtil, String serviceName, String version,
                                           String environment) {
@@ -83,5 +86,20 @@ public class VersionUtils {
         }
 
         return version;
+    }
+
+    public static Optional<URL> pickServiceInstanceRoundRobin(List<URL> serviceInstances) {
+
+        if (!serviceInstances.isEmpty()) {
+            int index = 0;
+            if (serviceInstances.size() >= lastInstanceServedIndex + 2) {
+                index = lastInstanceServedIndex + 1;
+            }
+            lastInstanceServedIndex = index;
+
+            return Optional.of(serviceInstances.get(index));
+        } else {
+            return Optional.empty();
+        }
     }
 }

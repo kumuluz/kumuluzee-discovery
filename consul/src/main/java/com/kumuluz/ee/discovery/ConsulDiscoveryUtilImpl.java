@@ -192,7 +192,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
         List<URL> urlList = new LinkedList<>();
 
         if(version != null) {
-            String resolvedVersion = VersionUtils.determineVersion(this, serviceName, version, environment);
+            String resolvedVersion = CommonUtils.determineVersion(this, serviceName, version, environment);
             for (ConsulService consulService : serviceList) {
                 if (consulService.getVersion().equals(resolvedVersion)) {
                     urlList.add(consulService.getServiceUrl());
@@ -313,22 +313,8 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
         Optional<List<URL>> optionalServiceInstances = getServiceInstances(serviceName, version, environment,
                 accessType);
 
-        if (optionalServiceInstances.isPresent()) {
+        return optionalServiceInstances.flatMap(CommonUtils::pickServiceInstanceRoundRobin);
 
-            List<URL> serviceInstances = optionalServiceInstances.get();
-
-            if (!serviceInstances.isEmpty()) {
-                int index = 0;
-                if (serviceInstances.size() >= lastInstanceServedIndex + 2) {
-                    index = lastInstanceServedIndex + 1;
-                }
-                lastInstanceServedIndex = index;
-
-                return Optional.of(serviceInstances.get(index));
-            }
-        }
-
-        return Optional.empty();
     }
 
     @Override

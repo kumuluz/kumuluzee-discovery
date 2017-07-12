@@ -277,7 +277,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     public Optional<List<URL>> getServiceInstances(String serviceName, String version,
                                                    String environment, AccessType accessType) {
 
-        version = VersionUtils.determineVersion(this, serviceName, version, environment);
+        version = CommonUtils.determineVersion(this, serviceName, version, environment);
 
         if (!this.serviceInstances.containsKey(serviceName + "_" + version + "_" + environment)) {
 
@@ -418,23 +418,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         Optional<List<URL>> optionalServiceInstances = getServiceInstances(serviceName, version, environment,
                 accessType);
 
-        if (optionalServiceInstances.isPresent()) {
-
-            List<URL> serviceInstances = optionalServiceInstances.get();
-
-            if (!serviceInstances.isEmpty()) {
-                int index = 0;
-                if (serviceInstances.size() >= lastInstanceServedIndex + 2) {
-                    index = lastInstanceServedIndex + 1;
-                }
-                lastInstanceServedIndex = index;
-
-                return Optional.of(serviceInstances.get(index));
-            }
-        }
-
-        return Optional.empty();
-
+        return optionalServiceInstances.flatMap(CommonUtils::pickServiceInstanceRoundRobin);
     }
 
     @Override
