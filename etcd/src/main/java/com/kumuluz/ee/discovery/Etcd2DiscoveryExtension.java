@@ -45,7 +45,7 @@ public class Etcd2DiscoveryExtension implements Extension {
     @Override
     public void init(KumuluzServerWrapper kumuluzServerWrapper, EeConfig eeConfig) {
 
-        log.info("Initialising service discovery.");
+        log.info("Initialising etcd-based service discovery.");
     }
 
     @Override

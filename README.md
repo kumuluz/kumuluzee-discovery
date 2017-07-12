@@ -9,7 +9,7 @@ KumuluzEE Discovery has been designed to support modularity with pluggable servi
 
 ## Usage
 
-You can enable etcd service discovery by adding the following dependency:
+You can enable etcd-based service discovery by adding the following dependency:
 ```xml
 <dependency>
     <groupId>com.kumuluz.ee.discovery</groupId>
@@ -18,7 +18,7 @@ You can enable etcd service discovery by adding the following dependency:
 </dependency>
 ```
 
-You can enable Consul service discovery by adding the following dependency:
+You can enable Consul-based service discovery by adding the following dependency:
 ```xml
 <dependency>
     <groupId>com.kumuluz.ee.discovery</groupId>
@@ -27,7 +27,7 @@ You can enable Consul service discovery by adding the following dependency:
 </dependency>
 ```
 
-#### Configuring etcd 
+### Configuring etcd 
 
 Etcd is configured with the common KumuluzEE configuration framework. Configuration properties can be defined with the environment variables or in the configuration file. For more details see the 
 [KumuluzEE configuration wiki page](https://github.com/kumuluz/kumuluzee/wiki/Configuration).
@@ -63,22 +63,22 @@ kumuluzee:
     ping-interval: 5
 ```
 
-#### Configuring Consul
+### Configuring Consul
 
-Etcd is configured with the common KumuluzEE configuration framework. Configuration properties can be defined with the environment variables or in the configuration file. For more details see the 
-[KumuluzEE configuration wiki page](https://github.com/kumuluz/kumuluzee/wiki/Configuration).
+Consul is also configured with the common KumuluzEE configuration framework, similarly as etcd.
 
-Consul connects to the local agent (`http://localhost:8500`) without additional configuration. You can specify the URL
-of the Consul client with configuration key `kumuluzee.discovery.consul.agent`. Note, that Consul is responsible for
-assigning the IP of the service and will assign the IP on which Consul is accessible, not the actual IP of the service.
-This means, that this option is useful in specific situations, for example, when you are running your services in
-Docker and want them to connect to the Consul agent, running on Docker host (or running in Docker with `--net=host`).
+By default, Consul connects to the local agent (`http://localhost:8500`) without additional configuration. You can 
+specify the URL of the Consul agent with configuration key `kumuluzee.discovery.consul.agent`. Note that Consul is 
+responsible for assigning the IP addresses of the registered services and will assign them the IP on which it is 
+accessible. Specifying an agent IP address is therefore useful in specific situations, for example when you are running 
+multiple services on single Docker host and want them to connect to the single Consul agent, running on the same Docker 
+host. 
 
-If your service is accessible over https, you must specify that with configuration key
+If your service is accessible over https, you must specify that with configuration key 
 `kumuluzee.discovery.consul.protocol: https`. Otherwise, http protocol is used.
 
 Consul implementation reregisters services in case of errors and sometimes unused services in critical state remain in
-Consul. To avoid that, Consul implementation uses Consul parameter `DeregisterCriticalServiceAfter` when registering
+Consul. To avoid this, Consul implementation uses Consul parameter `DeregisterCriticalServiceAfter` when registering
 services. To read more about this parameter, see Consul documentation: https://www.consul.io/api/agent/check.html#deregistercriticalserviceafter.
 To alter the value of this parameter, set configuration key `kumuluzee.config.consul.deregister-critical-service-after-s`
 appropriately. Default value is 60 (1 min).
@@ -91,12 +91,13 @@ If the service uses https protocol, tag `https` is added.
 
 ### Service registration
 
-To register a service with etcd, service URL has to be provided with the configuration key `kumuluzee.base-url` in the following format 
-`http://localhost:8080`. Consul implementation uses its local agent's address, so this key is not used.
+To register a service with etcd, service URL has to be provided with the configuration key `kumuluzee.base-url` in 
+the following format:`http://localhost:8080`. Consul implementation uses agent's IP address for the URL of registered 
+services, so this key is not used.
 
 KumuluzEE Discovery supports registration of multiple different versions of a service in different environments. The environment can be set with 
 the configuration key `kumuluzee.env`, the default value is `dev`. Service version can also be set with the configuration key 
-`kumuluzee.version`, the default value is `1.0.0`. Configuration key will override annotation value.
+`kumuluzee.version`, the default value is `1.0.0`. Configuration keys will override annotation values.
 
 Automatic service registration is enabled with the annotation `@RegisterService` on the REST application class (that extends 
 `javax.ws.rs.core.Application`). The annotation takes six parameters:
