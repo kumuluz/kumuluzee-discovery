@@ -23,23 +23,27 @@ package com.kumuluz.ee.discovery;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.utils.*;
-import com.orbitz.consul.AgentClient;
-import com.orbitz.consul.Consul;
-import com.orbitz.consul.ConsulException;
-import com.orbitz.consul.HealthClient;
+import com.orbitz.consul.*;
+import com.orbitz.consul.async.ConsulResponseCallback;
 import com.orbitz.consul.cache.ConsulCache;
 import com.orbitz.consul.cache.ServiceHealthCache;
 import com.orbitz.consul.cache.ServiceHealthKey;
+import com.orbitz.consul.model.ConsulResponse;
 import com.orbitz.consul.model.health.ServiceHealth;
+import com.orbitz.consul.model.kv.Value;
+import com.orbitz.consul.option.QueryOptions;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import java.math.BigInteger;
+import java.net.ConnectException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 /**
@@ -56,12 +60,17 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
     private Map<String, List<ConsulService>> serviceInstances;
     private Map<String, Set<String>> serviceVersions;
+    private Map<String, URL> gatewayUrls;
     private int lastInstanceServedIndex;
+
+    private int startRetryDelay;
+    private int maxRetryDelay;
 
     private static final int CONSUL_WATCH_WAIT_SECONDS = 120;
 
     private AgentClient agentClient;
     private HealthClient healthClient;
+    private KeyValueClient kvClient;
 
     @PostConstruct
     public void init() {
@@ -70,6 +79,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
         this.serviceInstances = new HashMap<>();
         this.serviceVersions = new HashMap<>();
+        this.gatewayUrls = new HashMap<>();
 
         URL consulAgentUrl = null;
         try {
@@ -98,6 +108,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
         this.agentClient = consul.agentClient();
         this.healthClient = consul.healthClient();
+        this.kvClient = consul.keyValueClient();
     }
 
     @Override
@@ -108,8 +119,8 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
         int servicePort = configurationUtil.getInteger("port").orElse(8080);
 
         // get retry delays
-        int startRetryDelay = InitializationUtils.getStartRetryDelayMs(configurationUtil, "consul");
-        int maxRetryDelay = InitializationUtils.getMaxRetryDelayMs(configurationUtil, "consul");
+        startRetryDelay = InitializationUtils.getStartRetryDelayMs(configurationUtil, "consul");
+        maxRetryDelay = InitializationUtils.getMaxRetryDelayMs(configurationUtil, "consul");
 
         int deregisterCriticalServiceAfter = configurationUtil
                 .getInteger("kumuluzee.config.consul.deregister-critical-service-after-s").orElse(60);
@@ -189,7 +200,110 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
             }
         }
 
+        if(accessType == AccessType.GATEWAY && urlList.size() > 0) {
+            URL gatewayUrl = getGatewayUrl(serviceName, version, environment);
+            if(gatewayUrl != null) {
+                urlList = new LinkedList<>();
+                urlList.add(gatewayUrl);
+            }
+        }
+
         return Optional.of(urlList);
+    }
+
+    private URL getGatewayUrl(String serviceName, String version, String environment) {
+        if (!this.gatewayUrls.containsKey(serviceName + "_" + version + "_" + environment)) {
+            String fullKey = "/environments/" + environment + "/services/" + serviceName + "/" + version +
+                    "/gatewayUrl";
+
+            URL gatewayUrl = null;
+            try {
+                com.google.common.base.Optional<String> gatewayOpt = kvClient.getValueAsString(fullKey);
+                if(gatewayOpt.isPresent()) {
+                    gatewayUrl = new URL(gatewayOpt.get());
+                }
+            } catch (ConsulException e) {
+                log.severe("Consul exception: " + e.getLocalizedMessage());
+            } catch (MalformedURLException e) {
+                log.severe("Malformed URL exception: " + e.getLocalizedMessage());
+            }
+
+            // add watch to key
+            ConsulResponseCallback<com.google.common.base.Optional<Value>> callback = new ConsulResponseCallback<com
+                    .google.common.base.Optional<Value>>() {
+
+                AtomicReference<BigInteger> index = new AtomicReference<>(new BigInteger("0"));
+
+                int currentRetryDelay = startRetryDelay;
+
+                @Override
+                public void onComplete(ConsulResponse<com.google.common.base.Optional<Value>> consulResponse) {
+                    // successful request, reset delay
+                    currentRetryDelay = startRetryDelay;
+
+                    if (index.get() != null && !index.get().equals(consulResponse.getIndex())) {
+                        if (consulResponse.getResponse().isPresent()) {
+
+                            Value v = consulResponse.getResponse().get();
+
+                            com.google.common.base.Optional<String> valueOpt = v.getValueAsString();
+
+                            if (valueOpt.isPresent()) {
+                                log.info("Gateway URL at " + fullKey + " changed. New value: " + valueOpt.get());
+                                URL gatewayUrl = null;
+                                try {
+                                    gatewayUrl = new URL(valueOpt.get());
+                                } catch (MalformedURLException e) {
+                                    log.severe("Malformed URL exception: " + e.getLocalizedMessage());
+                                }
+                                gatewayUrls.put(serviceName + "_" + version + "_" + environment, gatewayUrl);
+                            }
+
+                        } else if (gatewayUrls.get(serviceName + "_" + version + "_" + environment) != null) {
+                            log.info("Gateway URL at " + fullKey + " deleted.");
+
+                            gatewayUrls.put(serviceName + "_" + version + "_" + environment, null);
+                        }
+                    }
+
+                    index.set(consulResponse.getIndex());
+
+                    watch();
+                }
+
+                void watch() {
+                    kvClient.getValue(fullKey, QueryOptions.blockSeconds(CONSUL_WATCH_WAIT_SECONDS, index.get())
+                                    .build(), this);
+                }
+
+                @Override
+                public void onFailure(Throwable throwable) {
+                    if (throwable instanceof ConnectException) {
+                        try {
+                            Thread.sleep(currentRetryDelay);
+                        } catch (InterruptedException ignored) {
+                        }
+
+                        // exponential increase, limited by maxRetryDelay
+                        currentRetryDelay *= 2;
+                        if (currentRetryDelay > maxRetryDelay) {
+                            currentRetryDelay = maxRetryDelay;
+                        }
+                    } else {
+                        log.severe("Watch error: " + throwable.getLocalizedMessage());
+                    }
+
+                    watch();
+                }
+            };
+
+            kvClient.getValue(fullKey, QueryOptions.blockSeconds(CONSUL_WATCH_WAIT_SECONDS, new BigInteger("0"))
+                            .build(), callback);
+
+            return gatewayUrl;
+        } else {
+            return this.gatewayUrls.get(serviceName + "_" + version + "_" + environment);
+        }
     }
 
     @Override

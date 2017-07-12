@@ -164,9 +164,13 @@ Service discovery supports two access types:
 - `AccessType.GATEWAY` returns gateway URL, if it is present. If not, behavior is the same as with `AccessType.DIRECT`.
 - `AccessType.DIRECT` always returns base URL or container URL.
 
-Gateway URL is read from etcd key-value store used for service discovery. It is stored in key 
-`/environments/'environment'/services/'serviceName'/'serviceVersion'/gatewayUrl` and is automatically updated, if 
-value in changes.
+If etcd implementation is used, gateway URL is read from etcd key-value store used for service discovery. It is stored
+in key `/environments/'environment'/services/'serviceName'/'serviceVersion'/gatewayUrl` and is automatically updated, if 
+value in etcd changes.
+
+If Consul implementation is used, gateway URL is read from Consul key-value store. It is stored in key
+`/environments/'environment'/services/'serviceName'/'serviceVersion'/gatewayUrl` and is automatically updated on
+changes, similar as in etcd implementation.
 
 **<a name="npm-versioning"></a>NPM-like versioning**
 
