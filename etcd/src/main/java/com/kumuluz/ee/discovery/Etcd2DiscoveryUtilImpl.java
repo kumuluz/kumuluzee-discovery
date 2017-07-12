@@ -23,9 +23,6 @@ package com.kumuluz.ee.discovery;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.utils.*;
-import com.vdurmont.semver4j.Requirement;
-import com.vdurmont.semver4j.Semver;
-import com.vdurmont.semver4j.SemverException;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import mousio.client.promises.ResponsePromise;
@@ -149,10 +146,8 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
             }
 
-            int startRetryDelay = configurationUtil.getInteger("kumuluzee.discovery.etcd.start-retry-delay-ms")
-                    .orElse(500);
-            int maxRetryDelay = configurationUtil.getInteger("kumuluzee.discovery.etcd.max-retry-delay-ms")
-                    .orElse(900000);
+            int startRetryDelay = InitializationUtils.getStartRetryDelayMs(configurationUtil, "etcd");
+            int maxRetryDelay = InitializationUtils.getMaxRetryDelayMs(configurationUtil, "etcd");
 
             etcd.setRetryHandler(new RetryWithExponentialBackOff(startRetryDelay, -1, maxRetryDelay));
 
@@ -282,7 +277,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     public Optional<List<URL>> getServiceInstances(String serviceName, String version,
                                                    String environment, AccessType accessType) {
 
-        version = determineVersion(serviceName, version, environment);
+        version = VersionUtils.determineVersion(this, serviceName, version, environment);
 
         if (!this.serviceInstances.containsKey(serviceName + "_" + version + "_" + environment)) {
 
@@ -807,56 +802,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             return splitted[2];
         }
 
-    }
-
-    private String determineVersion(String serviceName, String version, String environment) {
-
-        // check, if version has special characters (*, ^, ~)
-        // if true, use get getServiceVersions to get appropriate version
-        // return version
-
-        Requirement versionRequirement;
-        try {
-            versionRequirement = Requirement.buildNPM(version);
-        } catch (SemverException se) {
-            return version;
-        }
-
-        if (!version.contains("*") && !version.contains("x")) {
-            try {
-                new Semver(version, Semver.SemverType.NPM);
-                return version;
-            } catch (SemverException ignored) {
-            }
-        }
-
-        Optional<List<String>> versionsOpt = getServiceVersions(serviceName, environment);
-
-        if (versionsOpt.isPresent()) {
-            List<String> versions = versionsOpt.get();
-            List<Semver> versionsSemver = new LinkedList<>();
-
-            for (String versionString : versions) {
-                Semver listVersion;
-                try {
-                    listVersion = new Semver(versionString, Semver.SemverType.NPM);
-                } catch (SemverException se) {
-                    continue;
-                }
-
-                versionsSemver.add(listVersion);
-            }
-
-            Collections.sort(versionsSemver);
-
-            for (int i = versionsSemver.size() - 1; i >= 0; i--) {
-                if (versionsSemver.get(i).satisfies(versionRequirement)) {
-                    return versionsSemver.get(i).getOriginalValue();
-                }
-            }
-        }
-
-        return version;
     }
 
     private void putEtcdKey(String key, String value) {

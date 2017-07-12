@@ -10,6 +10,7 @@
     <modules>
         <module>common</module>
         <module>etcd</module>
+        <module>consul</module>
     </modules>
     <packaging>pom</packaging>
 

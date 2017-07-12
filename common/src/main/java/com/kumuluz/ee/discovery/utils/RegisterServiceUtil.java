@@ -94,30 +94,49 @@ public class RegisterServiceUtil implements ServletContextListener {
             targetClass = targetClass.getSuperclass();
         }
 
-        String serviceName = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).value();
+        String serviceName = configurationUtil.get("kumuluzee.service-name").orElse(null);
+        if(serviceName == null || serviceName.isEmpty()) {
+            serviceName = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).value();
 
-        if (serviceName.isEmpty()) {
-            serviceName = targetClass.getName();
+            if (serviceName.isEmpty()) {
+                serviceName = targetClass.getName();
+            }
         }
 
-        long ttl = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).ttl();
+        long ttl = configurationUtil.getInteger("kumuluzee.discovery.ttl").orElse(-1);
         if (ttl == -1) {
-            ttl = configurationUtil.getInteger("kumuluzee.discovery.ttl").orElse(30);
+            ttl = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).ttl();
+
+            if(ttl == -1) {
+                ttl = 30;
+            }
         }
 
-        long pingInterval = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).pingInterval();
+        long pingInterval = configurationUtil.getInteger("kumuluzee.discovery.ping-interval").orElse(-1);
         if (pingInterval == -1) {
-            pingInterval = configurationUtil.getInteger("kumuluzee.discovery.ping-interval").orElse(20);
+            pingInterval = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).pingInterval();
+
+            if (pingInterval == -1) {
+                pingInterval = 20;
+            }
         }
 
-        String environment = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).environment();
-        if (environment.isEmpty()) {
-            environment = configurationUtil.get("kumuluzee.env").orElse("dev");
+        String environment = configurationUtil.get("kumuluzee.env").orElse(null);
+        if (environment == null || environment.isEmpty()) {
+            environment = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).environment();
+
+            if(environment.isEmpty()) {
+                environment = "dev";
+            }
         }
 
-        String version = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).version();
-        if (version.isEmpty()) {
-            version = configurationUtil.get("kumuluzee.version").orElse("1.0.0");
+        String version = configurationUtil.get("kumuluzee.version").orElse(null);
+        if (version == null || version.isEmpty()) {
+            version = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).version();
+
+            if(version.isEmpty()) {
+                version = "1.0.0";
+            }
         }
 
         boolean singleton = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).singleton();
