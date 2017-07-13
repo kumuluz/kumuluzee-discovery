@@ -10,6 +10,7 @@
     <modules>
         <module>common</module>
         <module>etcd</module>
+        <module>consul</module>
     </modules>
     <packaging>pom</packaging>
 
@@ -29,6 +30,10 @@
 
         <kumuluzee.version>2.3.0-SNAPSHOT</kumuluzee.version>
 
+        <etcd4j.version>2.13.0</etcd4j.version>
+        <consul-client.version>0.16.1</consul-client.version>
+        <semver4j.version>2.0.2</semver4j.version>
+        <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
         <nexus.staging.plugin.version>1.6.8</nexus.staging.plugin.version>
         <gpg.plugin.version>1.6</gpg.plugin.version>
     </properties>

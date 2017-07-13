@@ -9,10 +9,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <name>KumuluzEE Discovery etcd</name>
-    <description>KumuluzEE Discovery extension for etcd key/value store</description>
+    <name>KumuluzEE Discovery Consul</name>
+    <description>KumuluzEE Discovery extension for Consul</description>
 
-    <artifactId>kumuluzee-discovery-etcd</artifactId>
+    <artifactId>kumuluzee-discovery-consul</artifactId>
 
     <dependencies>
         <dependency>
@@ -31,10 +31,11 @@
         </dependency>
 
         <dependency>
-            <groupId>org.mousio</groupId>
-            <artifactId>etcd4j</artifactId>
-            <version>${etcd4j.version}</version>
+            <groupId>com.orbitz.consul</groupId>
+            <artifactId>consul-client</artifactId>
+            <version>${consul-client.version}</version>
         </dependency>
     </dependencies>
+
 
 </project>

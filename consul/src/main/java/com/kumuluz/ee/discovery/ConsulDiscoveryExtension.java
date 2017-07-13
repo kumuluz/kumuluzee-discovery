@@ -18,34 +18,33 @@
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
 */
-
 package com.kumuluz.ee.discovery;
 
 import com.kumuluz.ee.common.Extension;
 import com.kumuluz.ee.common.config.EeConfig;
-import com.kumuluz.ee.common.dependencies.*;
+import com.kumuluz.ee.common.dependencies.EeComponentDependency;
+import com.kumuluz.ee.common.dependencies.EeComponentType;
+import com.kumuluz.ee.common.dependencies.EeExtensionDef;
+import com.kumuluz.ee.common.dependencies.EeExtensionType;
 import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
 
 import java.util.logging.Logger;
 
 /**
- * KumuluzEE framework extension for etcd-based service discovery
+ * KumuluzEE framework extension for Consul-based service discovery
  *
- * @author Jan Meznarič
+ * @author Jan Meznarič, Urban Malc
  */
-@EeExtensionDef(name = "etcd", type = EeExtensionType.DISCOVERY)
-@EeComponentDependencies({
-        @EeComponentDependency(EeComponentType.SERVLET),
-        @EeComponentDependency(EeComponentType.CDI)
-})
-public class Etcd2DiscoveryExtension implements Extension {
+@EeExtensionDef(name = "Consul", type = EeExtensionType.DISCOVERY)
+@EeComponentDependency(EeComponentType.CDI)
+public class ConsulDiscoveryExtension implements Extension {
 
-    private static final Logger log = Logger.getLogger(Etcd2DiscoveryExtension.class.getName());
+    private static final Logger log = Logger.getLogger(ConsulDiscoveryExtension.class.getName());
 
     @Override
     public void init(KumuluzServerWrapper kumuluzServerWrapper, EeConfig eeConfig) {
 
-        log.info("Initialising etcd-based service discovery.");
+        log.info("Initialising Consul-based service discovery.");
     }
 
     @Override

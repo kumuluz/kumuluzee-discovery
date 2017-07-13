@@ -18,37 +18,14 @@
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
 */
-
-package com.kumuluz.ee.discovery;
-
-import com.kumuluz.ee.common.Extension;
-import com.kumuluz.ee.common.config.EeConfig;
-import com.kumuluz.ee.common.dependencies.*;
-import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
-
-import java.util.logging.Logger;
+package com.kumuluz.ee.discovery.utils;
 
 /**
- * KumuluzEE framework extension for etcd-based service discovery
- *
- * @author Jan Meznarič
+ * @author Jan Meznarič, Urban Malc
  */
-@EeExtensionDef(name = "etcd", type = EeExtensionType.DISCOVERY)
-@EeComponentDependencies({
-        @EeComponentDependency(EeComponentType.SERVLET),
-        @EeComponentDependency(EeComponentType.CDI)
-})
-public class Etcd2DiscoveryExtension implements Extension {
+public class ConsulUtils {
 
-    private static final Logger log = Logger.getLogger(Etcd2DiscoveryExtension.class.getName());
-
-    @Override
-    public void init(KumuluzServerWrapper kumuluzServerWrapper, EeConfig eeConfig) {
-
-        log.info("Initialising etcd-based service discovery.");
-    }
-
-    @Override
-    public void load() {
+    public static String getConsulServiceKey(String serviceName, String environment) {
+        return environment + "/"  + serviceName;
     }
 }
