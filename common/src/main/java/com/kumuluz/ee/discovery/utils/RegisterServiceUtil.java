@@ -20,6 +20,7 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
+import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.annotations.RegisterService;
 
@@ -94,12 +95,17 @@ public class RegisterServiceUtil implements ServletContextListener {
             targetClass = targetClass.getSuperclass();
         }
 
-        String serviceName = configurationUtil.get("kumuluzee.service-name").orElse(null);
-        if(serviceName == null || serviceName.isEmpty()) {
-            serviceName = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).value();
+        EeConfig eeConfig = EeConfig.getInstance();
 
-            if (serviceName.isEmpty()) {
-                serviceName = targetClass.getName();
+        String serviceName = eeConfig.getName();
+        if(serviceName == null || serviceName.isEmpty()) {
+            serviceName = configurationUtil.get("kumuluzee.service-name").orElse(null);
+            if (serviceName == null || serviceName.isEmpty()) {
+                serviceName = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).value();
+
+                if (serviceName.isEmpty()) {
+                    serviceName = targetClass.getName();
+                }
             }
         }
 
@@ -121,21 +127,27 @@ public class RegisterServiceUtil implements ServletContextListener {
             }
         }
 
-        String environment = configurationUtil.get("kumuluzee.env").orElse(null);
-        if (environment == null || environment.isEmpty()) {
-            environment = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).environment();
+        String environment = eeConfig.getEnv().getName();
+        if(environment == null || environment.isEmpty()) {
+            environment = configurationUtil.get("kumuluzee.env").orElse(null);
+            if (environment == null || environment.isEmpty()) {
+                environment = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).environment();
 
-            if(environment.isEmpty()) {
-                environment = "dev";
+                if (environment.isEmpty()) {
+                    environment = "dev";
+                }
             }
         }
 
-        String version = configurationUtil.get("kumuluzee.version").orElse(null);
-        if (version == null || version.isEmpty()) {
-            version = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).version();
+        String version = eeConfig.getVersion();
+        if(version == null || version.isEmpty()) {
+            version = configurationUtil.get("kumuluzee.version").orElse(null);
+            if (version == null || version.isEmpty()) {
+                version = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).version();
 
-            if(version.isEmpty()) {
-                version = "1.0.0";
+                if (version.isEmpty()) {
+                    version = "1.0.0";
+                }
             }
         }
 

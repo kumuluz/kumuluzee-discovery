@@ -20,6 +20,7 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
+import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.annotations.DiscoverService;
 import com.kumuluz.ee.discovery.enums.AccessType;
@@ -94,7 +95,11 @@ public class DiscoverServiceProducer {
         AccessType accessType = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).accessType();
 
         if (environment.isEmpty()) {
-            environment = ConfigurationUtil.getInstance().get("kumuluzee.env").orElse("dev");
+            environment = EeConfig.getInstance().getEnv().getName();
+
+            if(environment == null || environment.isEmpty()) {
+                environment = ConfigurationUtil.getInstance().get("kumuluzee.env").orElse("dev");
+            }
         }
 
         log.info("Initializing field for service: " + serviceName + " version: " + version + " environment: " +

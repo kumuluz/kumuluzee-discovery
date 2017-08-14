@@ -61,7 +61,6 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     private Map<String, List<ConsulService>> serviceInstances;
     private Map<String, Set<String>> serviceVersions;
     private Map<String, URL> gatewayUrls;
-    private int lastInstanceServedIndex;
 
     private int startRetryDelay;
     private int maxRetryDelay;

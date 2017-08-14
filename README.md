@@ -59,11 +59,14 @@ Example of YAML configuration:
 
 ```yaml
 kumuluzee:
-  service-name: my-service
-  env: test
+  name: my-service
+  env:
+    name: test
   version: 1.2.3
-  base-url: http://localhost:8081
-  port: 8081
+  server:
+    http:
+      port: 8081
+    base-url: http://localhost:8081
   discovery:
     etcd:
       hosts: http://127.0.0.1:2379
@@ -102,10 +105,10 @@ If the service uses https protocol, tag `https` is added.
 Automatic service registration is enabled with the annotation `@RegisterService` on the REST application class (that extends 
 `javax.ws.rs.core.Application`). The annotation takes six parameters:
 
-- value: service name. Default value is fully classified class name. Service name can be overridden with configuration key `kumuluzee.service-name`.
+- value: service name. Default value is fully classified class name. Service name can be overridden with configuration key `kumuluzee.name`.
 - ttl: time to live of a registration key in the store. Default value is 30 seconds. TTL can be overridden with configuration key `kumuluzee.discovery.ttl`.
 - pingInterval: an interval in which service updates registration key value in the store. Default value is 20. Ping interval can be overridden with configuration key `kumuluzee.discovery.ping-interval`.
-- environment: environment in which service is registered. Default value is "dev". Environment can be overridden with configuration key `kumuluzee.env`.
+- environment: environment in which service is registered. Default value is "dev". Environment can be overridden with configuration key `kumuluzee.env.name`.
 - version: version of service to be registered. Default value is "1.0.0". Version can be overridden with configuration key `kumuluzee.version`.
 - singleton: if true ensures, that only one instance of service with the same name, version and environment is
 registered. Default value is false.
@@ -125,12 +128,12 @@ public class RestApplication extends Application {
 }
 ```
 
-To register a service with etcd, service URL has to be provided with the configuration key `kumuluzee.base-url` in 
+To register a service with etcd, service URL has to be provided with the configuration key `kumuluzee.server.base-url` in 
 the following format:`http://localhost:8080`. Consul implementation uses agent's IP address for the URL of registered 
 services, so this key is not used.
 
 KumuluzEE Discovery supports registration of multiple different versions of a service in different environments. The 
-environment can be set with the configuration key `kumuluzee.env`, the default value is `dev`. Service version can 
+environment can be set with the configuration key `kumuluzee.env.name`, the default value is `dev`. Service version can 
 also be set with the configuration key `kumuluzee.version`, the default value is `1.0.0`. Configuration keys will 
 override annotation values.
 
@@ -140,7 +143,7 @@ Service discovery is implemented by injecting fields with the annotation `@Disco
 
 - value: name of the service we want to inject.
 - environment: service environment, e.g. prod, dev, test. If value is not provided, environment is set to the value 
-defined with the configuration key `kumuluzee.env`. If the configuration key is not present, value is set to `dev`.
+defined with the configuration key `kumuluzee.env.name`. If the configuration key is not present, value is set to `dev`.
 - version: service version or NPM version range. Default value is "*", which resolves to the highest deployed 
 version (see chapter [NPM-like versioning](#npm-versioning)).
 - accessType: defines, which URL gets injected. Supported values are `AccessType.GATEWAY` and `AccessType.DIRECT`.
@@ -209,10 +212,10 @@ configuration key `kumuluzee.discovery.cluster`. Cluster id should be the same f
 cluster.
 
 Services running in the same cluster will be discovered by their container IP. Services accessing your service from
-outside the cluster will discover your service by its base url (`kumuluzee.baseurl`).
+outside the cluster will discover your service by its base url (`kumuluzee.server.base-url`).
 
 Container IP is automatically acquired when you run the service. If you want to override it, you can do so by 
-specifying configuration key `kumuluzee.containerurl`.
+specifying configuration key `kumuluzee.container-url`.
 
 ## Changelog
 
