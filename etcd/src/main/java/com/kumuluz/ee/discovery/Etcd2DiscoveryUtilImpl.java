@@ -544,6 +544,11 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     if (((EtcdException) t).isErrorCode(EtcdErrorCode.NodeExist)) {
                         log.error("Exception in etcd promise.", t);
                     }
+                    if(((EtcdException) t).isErrorCode(EtcdErrorCode.EventIndexCleared)) {
+                        // index to old, reset watch to new index
+                        watchServiceInstances(key, ((EtcdException) t).getIndex());
+                        return;
+                    }
                 }
 
                 EtcdKeysResponse.EtcdNode node = promise.getNow().getNode();
