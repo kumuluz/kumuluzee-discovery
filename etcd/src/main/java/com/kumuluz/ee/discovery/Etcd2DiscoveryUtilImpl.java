@@ -227,11 +227,11 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             if (baseUrl == null || baseUrl.isEmpty()) {
                 if (ipUrl != null) {
                     log.warning("No service URL provided, using URL " + ipUrl.toString() +
-                            ". You should probably set service URL with configuration key kumuluzee.base-url");
+                            ". You should probably set service URL with configuration key kumuluzee.server.base-url");
                     baseUrl = ipUrl.toString();
                 } else {
                     log.severe("No service URL provided or found." +
-                            "Set service URL with configuration key kumuluzee.base-url");
+                            "Set service URL with configuration key kumuluzee.server.base-url");
                     return;
                 }
             }
