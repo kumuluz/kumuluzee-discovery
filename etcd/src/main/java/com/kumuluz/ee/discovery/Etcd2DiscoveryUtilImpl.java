@@ -435,8 +435,19 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
                     String version = Etcd2Utils.getLastKeyLayer(versionNode.getKey());
 
+                    EtcdKeysResponse.EtcdNode instanceParentNode = null;
+                    for(EtcdKeysResponse.EtcdNode instanceParentNodeCandidate : versionNode.getNodes()) {
+                        if(Etcd2Utils.getLastKeyLayer(instanceParentNodeCandidate.key).equals("instances")) {
+                            instanceParentNode = instanceParentNodeCandidate;
+                            break;
+                        }
+                    }
+                    if(instanceParentNode == null) {
+                        continue;
+                    }
+
                     boolean versionActive = false;
-                    for (EtcdKeysResponse.EtcdNode instanceNode : versionNode.getNodes().get(0).getNodes()) {
+                    for (EtcdKeysResponse.EtcdNode instanceNode : instanceParentNode.getNodes()) {
 
                         String url = null;
                         String status = null;
