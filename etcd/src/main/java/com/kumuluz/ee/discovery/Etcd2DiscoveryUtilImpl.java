@@ -20,6 +20,7 @@
 */
 package com.kumuluz.ee.discovery;
 
+import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.utils.*;
@@ -63,8 +64,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
     private List<Etcd2ServiceConfiguration> registeredServices;
 
-    private int lastInstanceServedIndex;
-
     private Map<String, Map<String, Etcd2Service>> serviceInstances;
     private Map<String, List<String>> serviceVersions;
     private Map<String, URL> gatewayUrls;
@@ -78,7 +77,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
         this.registeredServices = new LinkedList<>();
 
-        this.lastInstanceServedIndex = 0;
         this.serviceInstances = new HashMap<>();
         this.serviceVersions = new HashMap<>();
         this.gatewayUrls = new HashMap<>();
@@ -164,33 +162,27 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     public void register(String serviceName, String version, String environment, long ttl,
                          long pingInterval, boolean singleton) {
 
+        EeConfig eeConfig = EeConfig.getInstance();
+
         // get service URL
-        String baseUrl = configurationUtil.get("kumuluzee.base-url").orElse(null);
-        if (baseUrl != null) {
-            try {
-                baseUrl = new URL(baseUrl).toString();
-            } catch (MalformedURLException e) {
-                log.severe("Cannot parse kumuluzee.base-url. Exception: " + e.toString());
-                baseUrl = null;
-            }
-        }
-        if (baseUrl == null) {
-            baseUrl = configurationUtil.get("kumuluzee.baseurl").orElse(null);
+        String baseUrl = eeConfig.getServer().getBaseUrl();
+        if(baseUrl == null || baseUrl.isEmpty()) {
+            baseUrl = configurationUtil.get("kumuluzee.base-url").orElse(null);
             if (baseUrl != null) {
                 try {
                     baseUrl = new URL(baseUrl).toString();
                 } catch (MalformedURLException e) {
-                    log.severe("Cannot parse kumuluzee.baseurl. Exception: " + e.toString());
+                    log.severe("Cannot parse kumuluzee.base-url. Exception: " + e.toString());
                     baseUrl = null;
                 }
             }
         }
-        String containerUrl = configurationUtil.get("kumuluzee.containerurl").orElse(null);
+        String containerUrl = configurationUtil.get("kumuluzee.container-url").orElse(null);
         if (containerUrl != null) {
             try {
                 containerUrl = new URL(containerUrl).toString();
             } catch (MalformedURLException e) {
-                log.severe("Cannot parse kumuluzee.containerurl. Exception: " + e.toString());
+                log.severe("Cannot parse kumuluzee.container-url. Exception: " + e.toString());
                 containerUrl = null;
             }
         }
@@ -211,7 +203,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             }
             interfaceAddresses.sort(new HostAddressComparator());
             URL ipUrl = null;
-            String servicePort = configurationUtil.get("port").orElse("8080");
+            String servicePort = eeConfig.getServer().getHttp().getPort().toString();
             for (int i = 0; i < interfaceAddresses.size() && ipUrl == null; i++) {
                 InetAddress addr = interfaceAddresses.get(i);
                 try {
@@ -229,18 +221,17 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     containerUrl = ipUrl.toString();
                 } else if (containerUrl == null) {
                     log.severe("No container URL found, but running in container. All services will use service" +
-                            "URL. You can set container URL with configuration key kumuluzee.containerurl");
+                            "URL. You can set container URL with configuration key kumuluzee.container-url");
                 }
             }
             if (baseUrl == null || baseUrl.isEmpty()) {
                 if (ipUrl != null) {
-                    log.warning("No service URL provided, using ULR " + ipUrl.toString() +
-                            ". You should probably set service URL with configuration key kumuluzee.base-url or " +
-                            "kumuluzee.baseurl");
+                    log.warning("No service URL provided, using URL " + ipUrl.toString() +
+                            ". You should probably set service URL with configuration key kumuluzee.server.base-url");
                     baseUrl = ipUrl.toString();
                 } else {
                     log.severe("No service URL provided or found." +
-                            "Set service URL with configuration key kumuluzee.base-url or kumuluzee.baseurl");
+                            "Set service URL with configuration key kumuluzee.server.base-url");
                     return;
                 }
             }
