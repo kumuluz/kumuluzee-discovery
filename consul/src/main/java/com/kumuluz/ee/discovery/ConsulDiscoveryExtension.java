@@ -27,8 +27,8 @@ import com.kumuluz.ee.common.dependencies.EeComponentType;
 import com.kumuluz.ee.common.dependencies.EeExtensionDef;
 import com.kumuluz.ee.common.dependencies.EeExtensionType;
 import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
-
-import java.util.logging.Logger;
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 
 /**
  * KumuluzEE framework extension for Consul-based service discovery
@@ -39,7 +39,7 @@ import java.util.logging.Logger;
 @EeComponentDependency(EeComponentType.CDI)
 public class ConsulDiscoveryExtension implements Extension {
 
-    private static final Logger log = Logger.getLogger(ConsulDiscoveryExtension.class.getName());
+    private static final Logger log = LogManager.getLogger(ConsulDiscoveryExtension.class.getName());
 
     @Override
     public void init(KumuluzServerWrapper kumuluzServerWrapper, EeConfig eeConfig) {

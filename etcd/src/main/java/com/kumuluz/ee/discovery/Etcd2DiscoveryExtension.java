@@ -25,8 +25,8 @@ import com.kumuluz.ee.common.Extension;
 import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.common.dependencies.*;
 import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
-
-import java.util.logging.Logger;
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 
 /**
  * KumuluzEE framework extension for etcd-based service discovery
@@ -40,7 +40,7 @@ import java.util.logging.Logger;
 })
 public class Etcd2DiscoveryExtension implements Extension {
 
-    private static final Logger log = Logger.getLogger(Etcd2DiscoveryExtension.class.getName());
+    private static final Logger log = LogManager.getLogger(Etcd2DiscoveryExtension.class.getName());
 
     @Override
     public void init(KumuluzServerWrapper kumuluzServerWrapper, EeConfig eeConfig) {

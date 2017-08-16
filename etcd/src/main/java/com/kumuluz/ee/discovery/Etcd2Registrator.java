@@ -22,6 +22,8 @@ package com.kumuluz.ee.discovery;
 
 import com.kumuluz.ee.discovery.utils.Etcd2ServiceConfiguration;
 import com.kumuluz.ee.discovery.utils.Etcd2Utils;
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 import mousio.etcd4j.EtcdClient;
 import mousio.etcd4j.responses.EtcdAuthenticationException;
 import mousio.etcd4j.responses.EtcdException;
@@ -29,7 +31,6 @@ import mousio.etcd4j.responses.EtcdKeysResponse;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Logger;
 
 /**
  * Runnable for service registration and heartbeats
@@ -37,7 +38,7 @@ import java.util.logging.Logger;
  * @author Jan Meznarič, Urban Malc
  */
 public class Etcd2Registrator implements Runnable {
-    private static final Logger log = Logger.getLogger(Etcd2Registrator.class.getName());
+    private static final Logger log = LogManager.getLogger(Etcd2Registrator.class.getName());
 
     private EtcdClient etcd;
     private Etcd2ServiceConfiguration serviceConfig;
@@ -63,7 +64,7 @@ public class Etcd2Registrator implements Runnable {
                 e.printStackTrace();
             } catch (EtcdException e) {
                 if (e.isErrorCode(100)) {
-                    log.warning("Etcd key not present: " + this.serviceConfig.getServiceInstanceKey() +
+                    log.warn("Etcd key not present: " + this.serviceConfig.getServiceInstanceKey() +
                             ". Reregistering service.");
 
                     this.isRegistered = false;
@@ -78,7 +79,7 @@ public class Etcd2Registrator implements Runnable {
     private void registerToEtcd() {
         if (this.serviceConfig.isSingleton() && isRegistered()) {
 
-            log.warning("Instance was not registered. Trying to register a singleton microservice instance, but " +
+            log.warn("Instance was not registered. Trying to register a singleton microservice instance, but " +
                     "another instance is already registered.");
 
         } else {
@@ -101,16 +102,16 @@ public class Etcd2Registrator implements Runnable {
 
                     this.isRegistered = true;
                 } catch (IOException e) {
-                    log.info("IO Exception. Cannot read given key: " + e);
+                    log.info("IO Exception. Cannot read given key.", e);
                 } catch (EtcdException e) {
-                    log.info("Etcd exception. " + e);
+                    log.info("Etcd exception.", e);
                 } catch (EtcdAuthenticationException e) {
-                    log.severe("Etcd authentication exception. Cannot read given key: " + e);
+                    log.error("Etcd authentication exception. Cannot read given key.", e);
                 } catch (TimeoutException e) {
-                    log.severe("Timeout exception. Cannot read given key time: " + e);
+                    log.error("Timeout exception. Cannot read given key time.", e);
                 }
             } else {
-                log.severe("etcd not initialised.");
+                log.error("etcd not initialised.");
             }
 
         }

@@ -20,18 +20,19 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 import com.orbitz.consul.model.health.ServiceHealth;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.logging.Logger;
 
 /**
  * @author Jan Meznarič, Urban Malc
  */
 public class ConsulService {
 
-    private static final Logger log = Logger.getLogger(ConsulService.class.getName());
+    private static final Logger log = LogManager.getLogger(ConsulService.class.getName());
 
     public static final String TAG_HTTPS = "https";
     public static final String TAG_VERSION_PREFIX = "version=";
@@ -83,7 +84,7 @@ public class ConsulService {
             return new URL(((serviceHealth.getService().getTags().contains(TAG_HTTPS)) ? "https" : "http")
                     + "://" + serviceHealth.getNode().getAddress() + ":" + serviceHealth.getService().getPort());
         } catch (MalformedURLException e) {
-            log.severe("Malformed URL when translating serviceHealth to URL: " + e.getLocalizedMessage());
+            log.error("Malformed URL when translating serviceHealth to URL.", e);
         }
 
         return null;
