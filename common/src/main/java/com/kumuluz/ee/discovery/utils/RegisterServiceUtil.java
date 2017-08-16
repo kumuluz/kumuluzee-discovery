@@ -22,6 +22,8 @@ package com.kumuluz.ee.discovery.utils;
 
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.annotations.RegisterService;
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
@@ -35,7 +37,6 @@ import javax.ws.rs.core.Application;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
-import java.util.logging.Logger;
 
 /**
  * Interceptor class for RegisterService annotation.
@@ -44,7 +45,7 @@ import java.util.logging.Logger;
 @WebListener
 public class RegisterServiceUtil implements ServletContextListener {
 
-    private static final Logger log = Logger.getLogger(RegisterServiceUtil.class.getName());
+    private static final Logger log = LogManager.getLogger(RegisterServiceUtil.class.getName());
 
     private boolean beanInitialised;
     private boolean deregistratorEnabled;

@@ -23,6 +23,8 @@ package com.kumuluz.ee.discovery.utils;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.annotations.DiscoverService;
 import com.kumuluz.ee.discovery.enums.AccessType;
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.inject.Produces;
@@ -34,7 +36,6 @@ import javax.ws.rs.client.WebTarget;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Optional;
-import java.util.logging.Logger;
 
 /**
  * Producer for DiscoverService annotation.
@@ -42,7 +43,7 @@ import java.util.logging.Logger;
 @RequestScoped
 public class DiscoverServiceProducer {
 
-    private static final Logger log = Logger.getLogger(DiscoverServiceProducer.class.getName());
+    private static final Logger log = LogManager.getLogger(DiscoverServiceProducer.class.getName());
 
     @Inject
     private DiscoveryUtil discoveryUtil;

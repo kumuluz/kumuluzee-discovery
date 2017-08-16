@@ -20,6 +20,8 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 import mousio.etcd4j.EtcdClient;
 import mousio.etcd4j.responses.EtcdAuthenticationException;
 import mousio.etcd4j.responses.EtcdException;
@@ -27,7 +29,6 @@ import mousio.etcd4j.responses.EtcdKeysResponse;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Logger;
 
 /**
  * etcd utils
@@ -35,7 +36,7 @@ import java.util.logging.Logger;
  * @author Urban Malc
  */
 public class Etcd2Utils {
-    private static final Logger log = Logger.getLogger(Etcd2Utils.class.getName());
+    private static final Logger log = LogManager.getLogger(Etcd2Utils.class.getName());
 
     public static EtcdKeysResponse getEtcdDir(EtcdClient etcd, String key) {
 
@@ -46,17 +47,17 @@ public class Etcd2Utils {
             try {
                 etcdKeysResponse = etcd.getDir(key).recursive().send().get();
             } catch (IOException e) {
-                log.info("IO Exception. Cannot read given key: " + e);
+                log.info("IO Exception. Cannot read given key", e);
             } catch (EtcdException e) {
-                log.info("Etcd exception. " + e);
+                log.info("Etcd exception.", e);
             } catch (EtcdAuthenticationException e) {
-                log.severe("Etcd authentication exception. Cannot read given key: " + e);
+                log.error("Etcd authentication exception. Cannot read given key.", e);
             } catch (TimeoutException e) {
-                log.severe("Timeout exception. Cannot read given key time: " + e);
+                log.error("Timeout exception. Cannot read given key time.", e);
             }
 
         } else {
-            log.severe("etcd not initialised.");
+            log.error("etcd not initialised.");
         }
 
         return etcdKeysResponse;

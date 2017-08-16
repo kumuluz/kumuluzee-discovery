@@ -22,6 +22,8 @@ package com.kumuluz.ee.discovery;
 
 import com.kumuluz.ee.discovery.utils.ConsulService;
 import com.kumuluz.ee.discovery.utils.ConsulServiceConfiguration;
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 import com.orbitz.consul.AgentClient;
 import com.orbitz.consul.ConsulException;
 import com.orbitz.consul.HealthClient;
@@ -31,7 +33,6 @@ import com.orbitz.consul.model.agent.Registration;
 import com.orbitz.consul.model.health.ServiceHealth;
 
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Runnable for service registration and heartbeats
@@ -39,7 +40,7 @@ import java.util.logging.Logger;
  * @author Jan Meznarič, Urban Malc
  */
 public class ConsulRegistrator implements Runnable {
-    private static final Logger log = Logger.getLogger(ConsulRegistrator.class.getName());
+    private static final Logger log = LogManager.getLogger(ConsulRegistrator.class.getName());
 
     private AgentClient agentClient;
     private HealthClient healthClient;
@@ -74,7 +75,7 @@ public class ConsulRegistrator implements Runnable {
         try {
             agentClient.pass(this.serviceConfiguration.getServiceId());
         } catch (NotRegisteredException e) {
-            log.warning("Received NotRegisteredException from Consul AgentClient when sending heartbeat. "  +
+            log.warn("Received NotRegisteredException from Consul AgentClient when sending heartbeat. "  +
                     "Reregistering service.");
             this.isRegistered = false;
             this.registerToConsul();
@@ -83,7 +84,7 @@ public class ConsulRegistrator implements Runnable {
 
     private void registerToConsul() {
         if(this.serviceConfiguration.isSingleton() && isRegistered()) {
-            log.warning("Instance was not registered. Trying to register a singleton microservice instance, but " +
+            log.warn("Instance was not registered. Trying to register a singleton microservice instance, but " +
                     "another instance is already registered.");
         } else {
             log.info("Registering service with Consul. Service name: " + this.serviceConfiguration.getServiceName() +
@@ -109,7 +110,7 @@ public class ConsulRegistrator implements Runnable {
                         this.isRegistered = true;
                         this.currentRetryDelay = serviceConfiguration.getStartRetryDelay();
                     } catch (ConsulException e) {
-                        log.severe("Consul Exception when registering service: " + e.getLocalizedMessage());
+                        log.error("Consul Exception when registering service.", e);
                         try {
                             Thread.sleep(currentRetryDelay);
                         } catch (InterruptedException ignored) {
@@ -126,7 +127,7 @@ public class ConsulRegistrator implements Runnable {
                 // we need to send heartbeat immediately after registration so the checks pass
                 sendHeartbeat();
             } else {
-                log.severe("Consul not initialized.");
+                log.error("Consul not initialized.");
             }
         }
     }
@@ -138,8 +139,8 @@ public class ConsulRegistrator implements Runnable {
                 serviceInstances = healthClient
                         .getHealthyServiceInstances(this.serviceConfiguration.getServiceConsulKey()).getResponse();
             } catch (ConsulException e) {
-                log.severe("Error retrieving healthy instances from Consul. Cannot determine, if service is " +
-                        "already registered. ConsulException: " + e.getLocalizedMessage());
+                log.error("Error retrieving healthy instances from Consul. Cannot determine, if service is " +
+                        "already registered. ConsulException.", e);
                 return true;
             }
 
@@ -155,7 +156,7 @@ public class ConsulRegistrator implements Runnable {
 
             return registered;
         } else {
-            log.severe("Consul not initialized");
+            log.error("Consul not initialized");
             return false;
         }
     }

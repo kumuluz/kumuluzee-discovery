@@ -23,6 +23,8 @@ package com.kumuluz.ee.discovery;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.utils.*;
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 import com.orbitz.consul.*;
 import com.orbitz.consul.async.ConsulResponseCallback;
 import com.orbitz.consul.cache.ConsulCache;
@@ -44,7 +46,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.logging.Logger;
 
 /**
  * @author Jan Meznarič, Urban Malc
@@ -52,7 +53,7 @@ import java.util.logging.Logger;
 @ApplicationScoped
 public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
-    private static final Logger log = Logger.getLogger(ConsulDiscoveryUtilImpl.class.getName());
+    private static final Logger log = LogManager.getLogger(ConsulDiscoveryUtilImpl.class.getName());
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
 
@@ -86,7 +87,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
             consulAgentUrl = new URL(configurationUtil.get("kumuluzee.discovery.consul.agent").orElse
                     ("http://localhost:8500"));
         } catch (MalformedURLException e) {
-            log.warning("Provided Consul Agent URL is not valid. Defaulting to http://localhost:8500");
+            log.warn("Provided Consul Agent URL is not valid. Defaulting to http://localhost:8500");
             try {
                 consulAgentUrl = new URL("http://localhost:8500");
             } catch (MalformedURLException e1) {
@@ -103,7 +104,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
         try {
             consul.agentClient().ping();
         } catch (ConsulException e) {
-            log.severe("Cannot ping consul agent: " + e.getLocalizedMessage());
+            log.error("Cannot ping consul agent.", e);
         }
 
         this.agentClient = consul.agentClient();
@@ -146,7 +147,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                 try {
                     agentClient.deregister(serviceConfiguration.getServiceId());
                 } catch (ConsulException e) {
-                    log.severe("Error deregistering service with Consul: " + e.getLocalizedMessage());
+                    log.error("Error deregistering service with Consul.", e);
                 }
             }
         }
@@ -166,7 +167,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                 serviceHealths = healthClient.getHealthyServiceInstances(consulServiceKey)
                         .getResponse();
             } catch (ConsulException e) {
-                log.severe("Error retrieving healthy service instances from Consul: " + e.getLocalizedMessage());
+                log.error("Error retrieving healthy service instances from Consul.", e);
                 return Optional.empty();
             }
 
@@ -223,9 +224,9 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                     gatewayUrl = new URL(gatewayOpt.get());
                 }
             } catch (ConsulException e) {
-                log.severe("Consul exception: " + e.getLocalizedMessage());
+                log.error("Consul exception.", e);
             } catch (MalformedURLException e) {
-                log.severe("Malformed URL exception: " + e.getLocalizedMessage());
+                log.error("Malformed URL exception.", e);
             }
             this.gatewayUrls.put(serviceName + "_" + version + "_" + environment, gatewayUrl);
 
@@ -255,7 +256,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                                 try {
                                     gatewayUrl = new URL(valueOpt.get());
                                 } catch (MalformedURLException e) {
-                                    log.severe("Malformed URL exception: " + e.getLocalizedMessage());
+                                    log.error("Malformed URL exception.", e);
                                 }
                                 gatewayUrls.put(serviceName + "_" + version + "_" + environment, gatewayUrl);
                             }
@@ -291,7 +292,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                             currentRetryDelay = maxRetryDelay;
                         }
                     } else {
-                        log.severe("Watch error: " + throwable.getLocalizedMessage());
+                        log.error("Watch error.", throwable);
                     }
 
                     watch();
@@ -358,7 +359,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
         try {
             svHealth.start();
         } catch (Exception e) {
-            log.severe("Cannot start service listener: " + e.getLocalizedMessage());
+            log.error("Cannot start service listener.", e);
         }
 
     }
@@ -375,7 +376,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                     agentClient.toggleMaintenanceMode(consulService.getId(), true, "Service disabled" +
                             "with KumuluzEE Config Consul's disableServiceInstance call.");
                 } catch (ConsulException e) {
-                    log.severe("Error deregistering service instance with Consul: " + e.getLocalizedMessage());
+                    log.error("Error deregistering service instance with Consul.", e);
                 }
             }
         }

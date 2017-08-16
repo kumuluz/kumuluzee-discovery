@@ -23,6 +23,8 @@ package com.kumuluz.ee.discovery;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.utils.*;
+import com.kumuluz.ee.logs.LogManager;
+import com.kumuluz.ee.logs.Logger;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import mousio.client.promises.ResponsePromise;
@@ -49,7 +51,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Logger;
 
 /**
  * @author Jan Meznarič, Urban Malc
@@ -57,7 +58,7 @@ import java.util.logging.Logger;
 @ApplicationScoped
 public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
-    private static final Logger log = Logger.getLogger(Etcd2DiscoveryUtilImpl.class.getName());
+    private static final Logger log = LogManager.getLogger(Etcd2DiscoveryUtilImpl.class.getName());
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
 
@@ -104,9 +105,9 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 sslContext = SslContextBuilder.forClient().trustManager(certificate).build();
 
             } catch (CertificateException e) {
-                log.severe("Certificate exception: " + e.toString());
+                log.error("Certificate exception.", e);
             } catch (SSLException e) {
-                log.severe("SSL exception: " + e.toString());
+                log.error("SSL exception.", e);
             }
         }
 
@@ -133,7 +134,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             }
 
             if (etcdHosts.length % 2 == 0) {
-                log.warning("Using an odd number of etcd hosts is recommended. See etcd documentation.");
+                log.warn("Using an odd number of etcd hosts is recommended. See etcd documentation.");
             }
 
             if (etcdSecurityContext != null) {
@@ -152,7 +153,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             etcd.setRetryHandler(new RetryWithExponentialBackOff(startRetryDelay, -1, maxRetryDelay));
 
         } else {
-            log.severe("No etcd server hosts provided. Specify hosts with configuration key" +
+            log.error("No etcd server hosts provided. Specify hosts with configuration key" +
                     "kumuluzee.discovery.etcd.hosts in format " +
                     "http://192.168.99.100:2379,http://192.168.99.101:2379,http://192.168.99.102:2379");
         }
@@ -170,7 +171,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             try {
                 baseUrl = new URL(baseUrl).toString();
             } catch (MalformedURLException e) {
-                log.severe("Cannot parse kumuluzee.base-url. Exception: " + e.toString());
+                log.error("Cannot parse kumuluzee.base-url.", e);
                 baseUrl = null;
             }
         }
@@ -180,7 +181,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 try {
                     baseUrl = new URL(baseUrl).toString();
                 } catch (MalformedURLException e) {
-                    log.severe("Cannot parse kumuluzee.baseurl. Exception: " + e.toString());
+                    log.error("Cannot parse kumuluzee.baseurl.", e);
                     baseUrl = null;
                 }
             }
@@ -190,7 +191,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             try {
                 containerUrl = new URL(containerUrl).toString();
             } catch (MalformedURLException e) {
-                log.severe("Cannot parse kumuluzee.containerurl. Exception: " + e.toString());
+                log.error("Cannot parse kumuluzee.containerurl.", e);
                 containerUrl = null;
             }
         }
@@ -221,25 +222,25 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                         ipUrl = new URL("http://[" + addr.getHostAddress().split("%")[0] + "]:" + servicePort);
                     }
                 } catch (MalformedURLException e) {
-                    log.severe("Cannot parse URL. Exception: " + e.toString());
+                    log.error("Cannot parse URL.", e);
                 }
             }
             if (this.clusterId != null) {
                 if (containerUrl == null && ipUrl != null) {
                     containerUrl = ipUrl.toString();
                 } else if (containerUrl == null) {
-                    log.severe("No container URL found, but running in container. All services will use service" +
+                    log.error("No container URL found, but running in container. All services will use service" +
                             "URL. You can set container URL with configuration key kumuluzee.containerurl");
                 }
             }
             if (baseUrl == null || baseUrl.isEmpty()) {
                 if (ipUrl != null) {
-                    log.warning("No service URL provided, using ULR " + ipUrl.toString() +
+                    log.warn("No service URL provided, using ULR " + ipUrl.toString() +
                             ". You should probably set service URL with configuration key kumuluzee.base-url or " +
                             "kumuluzee.baseurl");
                     baseUrl = ipUrl.toString();
                 } else {
-                    log.severe("No service URL provided or found." +
+                    log.error("No service URL provided or found." +
                             "Set service URL with configuration key kumuluzee.base-url or kumuluzee.baseurl");
                     return;
                 }
@@ -267,7 +268,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 try {
                     etcd.delete(serviceConfiguration.getServiceKeyUrl()).send();
                 } catch (IOException e) {
-                    log.severe("Cannot deregister service. Error: " + e.toString());
+                    log.error("Cannot deregister service.", e);
                 }
             }
         }
@@ -322,7 +323,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                             serviceUrls.put(node.getKey() + "/url",
                                     new Etcd2Service(new URL(url), containerUrl, clusterId));
                         } catch (MalformedURLException e) {
-                            log.severe("Malformed URL exception: " + e.toString());
+                            log.error("Malformed URL exception.", e);
                         }
                     }
                 }
@@ -388,22 +389,22 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
                 gatewayUrl = new URL(etcdKeysResponse.getNode().getValue());
             } catch (MalformedURLException e) {
-                log.severe("Malformed URL exception: " + e.toString());
+                log.error("Malformed URL exception.", e);
             } catch (IOException e) {
-                log.info("IO Exception. Cannot read given key: " + e);
+                log.info("IO Exception. Cannot read given key.", e);
             } catch (EtcdException e) {
                 // ignore key not found exception
                 if (e.getErrorCode() != 100) {
-                    log.info("Etcd exception. " + e);
+                    log.info("Etcd exception.", e);
                 }
             } catch (EtcdAuthenticationException e) {
-                log.severe("Etcd authentication exception. Cannot read given key: " + e);
+                log.error("Etcd authentication exception. Cannot read given key.", e);
             } catch (TimeoutException e) {
-                log.severe("Timeout exception. Cannot read given key time: " + e);
+                log.error("Timeout exception. Cannot read given key time.", e);
             }
 
             this.gatewayUrls.put(serviceName + "_" + version + "_" + environment, gatewayUrl);
-            watchServiceInstances(getGatewayKey(environment, serviceName, version), index);
+            watchServiceInstances(getGatewayKey(environment, serviceName, version), index + 1);
 
             return gatewayUrl;
         } else {
@@ -481,7 +482,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                                         .put(instanceNode.getKey() + "/url",
                                                 new Etcd2Service(new URL(url), containerUrl, clusterId));
                             } catch (MalformedURLException e) {
-                                log.severe("Malformed URL exception: " + e.toString());
+                                log.error("Malformed URL exception.", e);
                             }
                         }
 
@@ -541,7 +542,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 Throwable t = promise.getException();
                 if (t instanceof EtcdException) {
                     if (((EtcdException) t).isErrorCode(EtcdErrorCode.NodeExist)) {
-                        log.severe("Exception in etcd promise: " + ((EtcdException) t).etcdMessage);
+                        log.error("Exception in etcd promise.", t);
                     }
                 }
 
@@ -581,7 +582,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                                 this.serviceInstances.get(serviceName + "_" + version + "_" + environment).put(node
                                         .getKey(), etcd2Service);
                             } catch (MalformedURLException e) {
-                                log.severe("Malformed URL exception: " + e.toString());
+                                log.error("Malformed URL exception.", e);
                             }
                         }
 
@@ -619,7 +620,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                                 this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
                                         .put(instanceMapKey, etcd2Service);
                             } catch (MalformedURLException e) {
-                                log.severe("Malformed URL exception: " + e.toString());
+                                log.error("Malformed URL exception.", e);
                             }
                         }
                     }
@@ -672,7 +673,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                             try {
                                 gatewayUrl = new URL(node.getValue());
                             } catch (MalformedURLException e) {
-                                log.severe("Malformed URL exception: " + e.toString());
+                                log.error("Malformed URL exception.", e);
                             }
 
                             this.gatewayUrls.put(serviceName + "_" + version + "_" + environment, gatewayUrl);
@@ -725,7 +726,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             });
 
         } else {
-            log.severe("etcd not initialised.");
+            log.error("etcd not initialised.");
         }
     }
 
@@ -795,17 +796,17 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             try {
                 etcd.put(key, value).send().get();
             } catch (IOException e) {
-                log.info("IO Exception. Cannot read given key: " + e);
+                log.info("IO Exception. Cannot read given key.", e);
             } catch (EtcdException e) {
-                log.info("Etcd exception. " + e);
+                log.info("Etcd exception.", e);
             } catch (EtcdAuthenticationException e) {
-                log.severe("Etcd authentication exception. Cannot read given key: " + e);
+                log.error("Etcd authentication exception. Cannot read given key: ", e);
             } catch (TimeoutException e) {
-                log.severe("Timeout exception. Cannot read given key time: " + e);
+                log.error("Timeout exception. Cannot read given key time: ", e);
             }
 
         } else {
-            log.severe("etcd not initialised.");
+            log.error("etcd not initialised.");
         }
 
     }
