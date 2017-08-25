@@ -20,7 +20,7 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
-import java.util.Date;
+import com.kumuluz.ee.common.runtime.EeRuntime;
 
 /**
  * Service configuration data.
@@ -47,7 +47,7 @@ public class ConsulServiceConfiguration {
         this.serviceName = serviceName;
         this.environment = environment;
         this.version = version;
-        this.serviceId = serviceName + "-" + new Date().getTime();
+        this.serviceId = serviceName + "-" + EeRuntime.getInstance().getInstanceId();
         this.serviceProtocol = serviceProtocol;
         this.servicePort = servicePort;
         this.ttl = ttl;

@@ -20,7 +20,7 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
-import java.util.Date;
+import com.kumuluz.ee.common.runtime.EeRuntime;
 
 /**
  * Service configuration data.
@@ -52,7 +52,7 @@ public class Etcd2ServiceConfiguration {
         this.clusterId = clusterId;
 
         this.serviceInstanceKey = Etcd2Utils.getServiceKeyInstance(this.environment, this.serviceName,
-                this.serviceVersion, String.valueOf(new Date().getTime()));
+                this.serviceVersion, EeRuntime.getInstance().getInstanceId());
 
         this.serviceKeyUrl = serviceInstanceKey + "/url/";
     }
