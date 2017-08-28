@@ -166,7 +166,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
         // get service URL
         String baseUrl = eeConfig.getServer().getBaseUrl();
-        if(baseUrl == null || baseUrl.isEmpty()) {
+        if (baseUrl == null || baseUrl.isEmpty()) {
             baseUrl = configurationUtil.get("kumuluzee.base-url").orElse(null);
             if (baseUrl != null) {
                 try {
@@ -425,8 +425,19 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
                     String version = Etcd2Utils.getLastKeyLayer(versionNode.getKey());
 
+                    EtcdKeysResponse.EtcdNode instanceParentNode = null;
+                    for (EtcdKeysResponse.EtcdNode instanceParentNodeCandidate : versionNode.getNodes()) {
+                        if (Etcd2Utils.getLastKeyLayer(instanceParentNodeCandidate.key).equals("instances")) {
+                            instanceParentNode = instanceParentNodeCandidate;
+                            break;
+                        }
+                    }
+                    if (instanceParentNode == null) {
+                        continue;
+                    }
+
                     boolean versionActive = false;
-                    for (EtcdKeysResponse.EtcdNode instanceNode : versionNode.getNodes().get(0).getNodes()) {
+                    for (EtcdKeysResponse.EtcdNode instanceNode : instanceParentNode.getNodes()) {
 
                         String url = null;
                         String status = null;
@@ -533,6 +544,11 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 if (t instanceof EtcdException) {
                     if (((EtcdException) t).isErrorCode(EtcdErrorCode.NodeExist)) {
                         log.severe("Exception in etcd promise: " + ((EtcdException) t).etcdMessage);
+                    }
+                    if (((EtcdException) t).isErrorCode(EtcdErrorCode.EventIndexCleared)) {
+                        // index to old, reset watch to new index
+                        watchServiceInstances(key, ((EtcdException) t).getIndex());
+                        return;
                     }
                 }
 
