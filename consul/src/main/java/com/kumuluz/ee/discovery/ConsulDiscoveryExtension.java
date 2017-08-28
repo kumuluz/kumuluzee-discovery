@@ -25,7 +25,7 @@ import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.common.dependencies.EeComponentDependency;
 import com.kumuluz.ee.common.dependencies.EeComponentType;
 import com.kumuluz.ee.common.dependencies.EeExtensionDef;
-import com.kumuluz.ee.common.dependencies.EeExtensionType;
+import com.kumuluz.ee.common.dependencies.EeExtensionGroup;
 import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
 
 import java.util.logging.Logger;
@@ -35,7 +35,7 @@ import java.util.logging.Logger;
  *
  * @author Jan Meznarič, Urban Malc
  */
-@EeExtensionDef(name = "Consul", type = EeExtensionType.DISCOVERY)
+@EeExtensionDef(name = "Consul", group = EeExtensionGroup.DISCOVERY)
 @EeComponentDependency(EeComponentType.CDI)
 public class ConsulDiscoveryExtension implements Extension {
 

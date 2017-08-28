@@ -33,7 +33,7 @@ import java.util.logging.Logger;
  *
  * @author Jan Meznarič
  */
-@EeExtensionDef(name = "etcd", type = EeExtensionType.DISCOVERY)
+@EeExtensionDef(name = "etcd", group = EeExtensionGroup.DISCOVERY)
 @EeComponentDependencies({
         @EeComponentDependency(EeComponentType.SERVLET),
         @EeComponentDependency(EeComponentType.CDI)
