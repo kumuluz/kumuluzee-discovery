@@ -20,6 +20,7 @@
 */
 package com.kumuluz.ee.discovery;
 
+import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.utils.*;
@@ -96,8 +97,8 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
         Consul consul = Consul.builder()
                 .withUrl(consulAgentUrl).withPing(false)
-                .withReadTimeoutMillis(CONSUL_WATCH_WAIT_SECONDS*1000 + (CONSUL_WATCH_WAIT_SECONDS*1000) / 16 + 1000)
-                .build();
+                .withReadTimeoutMillis(CONSUL_WATCH_WAIT_SECONDS * 1000 + (CONSUL_WATCH_WAIT_SECONDS * 1000) / 16 +
+                        1000).build();
 
         try {
             consul.agentClient().ping();
@@ -115,7 +116,15 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                          boolean singleton) {
 
         String serviceProtocol = configurationUtil.get("kumuluzee.discovery.consul.protocol").orElse("http");
-        int servicePort = configurationUtil.getInteger("port").orElse(8080);
+
+        // get service port
+        Integer servicePort = EeConfig.getInstance().getServer().getHttp().getPort();
+        if (servicePort == null) {
+            servicePort = EeConfig.getInstance().getServer().getHttps().getPort();
+        }
+        if (servicePort == null) {
+            servicePort = configurationUtil.getInteger("port").orElse(8080);
+        }
 
         // get retry delays
         startRetryDelay = InitializationUtils.getStartRetryDelayMs(configurationUtil, "consul");
@@ -138,8 +147,8 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
     @Override
     public void deregister() {
-        if(agentClient != null) {
-            for(ConsulServiceConfiguration serviceConfiguration : registeredServices) {
+        if (agentClient != null) {
+            for (ConsulServiceConfiguration serviceConfiguration : registeredServices) {
                 log.info("Deregistering service with Consul. Service name: " +
                         serviceConfiguration.getServiceName() + " Service ID: " + serviceConfiguration.getServiceId());
                 try {
@@ -174,7 +183,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
             List<ConsulService> serviceUrls = new ArrayList<>();
             for (ServiceHealth serviceHealth : serviceHealths) {
                 ConsulService consulService = ConsulService.getInstanceFromServiceHealth(serviceHealth);
-                if(consulService != null) {
+                if (consulService != null) {
                     serviceUrls.add(consulService);
                     serviceVersions.add(consulService.getVersion());
                 }
@@ -190,7 +199,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
         List<ConsulService> serviceList = this.serviceInstances.get(consulServiceKey);
         List<URL> urlList = new LinkedList<>();
 
-        if(version != null) {
+        if (version != null) {
             String resolvedVersion = CommonUtils.determineVersion(this, serviceName, version, environment);
             for (ConsulService consulService : serviceList) {
                 if (consulService.getVersion().equals(resolvedVersion)) {
@@ -198,9 +207,9 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                 }
             }
 
-            if(accessType == AccessType.GATEWAY && urlList.size() > 0) {
+            if (accessType == AccessType.GATEWAY && urlList.size() > 0) {
                 URL gatewayUrl = getGatewayUrl(serviceName, resolvedVersion, environment);
-                if(gatewayUrl != null) {
+                if (gatewayUrl != null) {
                     urlList = new LinkedList<>();
                     urlList.add(gatewayUrl);
                 }
@@ -218,7 +227,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
             URL gatewayUrl = null;
             try {
                 com.google.common.base.Optional<String> gatewayOpt = kvClient.getValueAsString(fullKey);
-                if(gatewayOpt.isPresent()) {
+                if (gatewayOpt.isPresent()) {
                     gatewayUrl = new URL(gatewayOpt.get());
                 }
             } catch (ConsulException e) {
@@ -273,7 +282,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
                 void watch() {
                     kvClient.getValue(fullKey, QueryOptions.blockSeconds(CONSUL_WATCH_WAIT_SECONDS, index.get())
-                                    .build(), this);
+                            .build(), this);
                 }
 
                 @Override
@@ -298,7 +307,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
             };
 
             kvClient.getValue(fullKey, QueryOptions.blockSeconds(CONSUL_WATCH_WAIT_SECONDS, new BigInteger("0"))
-                            .build(), callback);
+                    .build(), callback);
 
             return gatewayUrl;
         } else {
@@ -319,7 +328,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     @Override
     public Optional<List<String>> getServiceVersions(String serviceName, String environment) {
         String consulServiceKey = ConsulUtils.getConsulServiceKey(serviceName, environment);
-        if(!this.serviceVersions.containsKey(consulServiceKey)) {
+        if (!this.serviceVersions.containsKey(consulServiceKey)) {
             // initialize serviceVersions and watcher
             getServiceInstances(serviceName, null, environment, AccessType.DIRECT);
         }
@@ -346,7 +355,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                 for (Map.Entry<ServiceHealthKey, ServiceHealth> serviceHealthKey : newValues.entrySet()) {
                     ConsulService consulService = ConsulService
                             .getInstanceFromServiceHealth(serviceHealthKey.getValue());
-                    if(consulService != null) {
+                    if (consulService != null) {
                         serviceInstances.get(serviceKey).add(consulService);
                         serviceVersions.get(serviceKey).add(consulService.getVersion());
                     }
@@ -368,8 +377,8 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
         getServiceInstances(serviceName, version, environment, AccessType.DIRECT);
         List<ConsulService> serviceList = this.serviceInstances
                 .get(ConsulUtils.getConsulServiceKey(serviceName, environment));
-        for(ConsulService consulService : serviceList) {
-            if(consulService.getVersion().equals(version) && consulService.getServiceUrl().equals(url)) {
+        for (ConsulService consulService : serviceList) {
+            if (consulService.getVersion().equals(version) && consulService.getServiceUrl().equals(url)) {
                 try {
                     agentClient.toggleMaintenanceMode(consulService.getId(), true, "Service disabled" +
                             "with KumuluzEE Config Consul's disableServiceInstance call.");

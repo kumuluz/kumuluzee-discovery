@@ -203,7 +203,16 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             }
             interfaceAddresses.sort(new HostAddressComparator());
             URL ipUrl = null;
-            String servicePort = eeConfig.getServer().getHttp().getPort().toString();
+
+            // get service port
+            Integer servicePort = eeConfig.getServer().getHttp().getPort();
+            if (servicePort == null) {
+                servicePort = EeConfig.getInstance().getServer().getHttps().getPort();
+            }
+            if (servicePort == null) {
+                servicePort = configurationUtil.getInteger("port").orElse(8080);
+            }
+
             for (int i = 0; i < interfaceAddresses.size() && ipUrl == null; i++) {
                 InetAddress addr = interfaceAddresses.get(i);
                 try {
