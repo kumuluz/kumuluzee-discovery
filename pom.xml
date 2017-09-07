@@ -35,7 +35,7 @@
         <jackson.version>2.8.10</jackson.version>
 
         <semver4j.version>2.0.2</semver4j.version>
-        <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.6.2</maven-compiler-plugin.version>
         <nexus.staging.plugin.version>1.6.8</nexus.staging.plugin.version>
         <gpg.plugin.version>1.6</gpg.plugin.version>
     </properties>
