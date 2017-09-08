@@ -12,6 +12,8 @@ for executing microservices in clusters and cloud-native platforms with full sup
 KumuluzEE Discovery has been designed to support modularity with pluggable service discovery frameworks. Currently, 
 etcd and Consul are supported. In the future, other discovery frameworks will be supported too (contributions are welcome).
 
+The extension supports KumuluzEE version 2.4.0 or higher.
+
 ## Usage
 
 You can enable etcd-based service discovery by adding the following dependency:
