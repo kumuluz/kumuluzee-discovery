@@ -326,14 +326,14 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                         }
                     }
                 }
-            }
 
-            this.serviceInstances.put(serviceName + "_" + version + "_" + environment, serviceUrls);
+                this.serviceInstances.put(serviceName + "_" + version + "_" + environment, serviceUrls);
 
-            if (!this.serviceVersions.containsKey(serviceName + "_" + environment)) {
-                // we are already watching all versions, no need to watch specific version
-                watchServiceInstances(Etcd2Utils.getServiceKeyInstances(environment, serviceName, version),
-                        etcdKeysResponse.etcdIndex + 1);
+                if (!this.serviceVersions.containsKey(serviceName + "_" + environment)) {
+                    // we are already watching all versions, no need to watch specific version
+                    watchServiceInstances(Etcd2Utils.getServiceKeyInstances(environment, serviceName, version),
+                            etcdKeysResponse.etcdIndex + 1);
+                }
             }
 
             List<URL> instances = new LinkedList<>();
