@@ -89,76 +89,80 @@ public class RegisterServiceUtil implements ServletContextListener {
      */
     private void registerService(Class targetClass) {
 
-        ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
-
         if (targetClassIsProxied(targetClass)) {
             targetClass = targetClass.getSuperclass();
         }
 
-        EeConfig eeConfig = EeConfig.getInstance();
+        RegisterService registerServiceAnnotation = (RegisterService) targetClass.getAnnotation(RegisterService.class);
 
-        String serviceName = eeConfig.getName();
-        if(serviceName == null || serviceName.isEmpty()) {
-            serviceName = configurationUtil.get("kumuluzee.service-name").orElse(null);
+        if (registerServiceAnnotation != null) {
+
+            EeConfig eeConfig = EeConfig.getInstance();
+            ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
+
+            String serviceName = eeConfig.getName();
             if (serviceName == null || serviceName.isEmpty()) {
-                serviceName = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).value();
+                serviceName = configurationUtil.get("kumuluzee.service-name").orElse(null);
+                if (serviceName == null || serviceName.isEmpty()) {
+                    serviceName = registerServiceAnnotation.value();
 
-                if (serviceName.isEmpty()) {
-                    serviceName = targetClass.getName();
+                    if (serviceName.isEmpty()) {
+                        serviceName = targetClass.getName();
+                    }
                 }
             }
-        }
 
-        long ttl = configurationUtil.getInteger("kumuluzee.discovery.ttl").orElse(-1);
-        if (ttl == -1) {
-            ttl = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).ttl();
+            long ttl = configurationUtil.getInteger("kumuluzee.discovery.ttl").orElse(-1);
+            if (ttl == -1) {
+                ttl = registerServiceAnnotation.ttl();
 
-            if(ttl == -1) {
-                ttl = 30;
+                if (ttl == -1) {
+                    ttl = 30;
+                }
             }
-        }
 
-        long pingInterval = configurationUtil.getInteger("kumuluzee.discovery.ping-interval").orElse(-1);
-        if (pingInterval == -1) {
-            pingInterval = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).pingInterval();
-
+            long pingInterval = configurationUtil.getInteger("kumuluzee.discovery.ping-interval").orElse(-1);
             if (pingInterval == -1) {
-                pingInterval = 20;
-            }
-        }
+                pingInterval = registerServiceAnnotation.pingInterval();
 
-        String environment = eeConfig.getEnv().getName();
-        if(environment == null || environment.isEmpty()) {
-            environment = configurationUtil.get("kumuluzee.env").orElse(null);
+                if (pingInterval == -1) {
+                    pingInterval = 20;
+                }
+            }
+
+            String environment = eeConfig.getEnv().getName();
             if (environment == null || environment.isEmpty()) {
-                environment = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).environment();
+                environment = configurationUtil.get("kumuluzee.env").orElse(null);
+                if (environment == null || environment.isEmpty()) {
+                    environment = registerServiceAnnotation.environment();
 
-                if (environment.isEmpty()) {
-                    environment = "dev";
+                    if (environment.isEmpty()) {
+                        environment = "dev";
+                    }
                 }
             }
-        }
 
-        String version = eeConfig.getVersion();
-        if(version == null || version.isEmpty()) {
-            version = configurationUtil.get("kumuluzee.version").orElse(null);
+            String version = eeConfig.getVersion();
             if (version == null || version.isEmpty()) {
-                version = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).version();
+                version = configurationUtil.get("kumuluzee.version").orElse(null);
+                if (version == null || version.isEmpty()) {
+                    version = registerServiceAnnotation.version();
 
-                if (version.isEmpty()) {
-                    version = "1.0.0";
+                    if (version.isEmpty()) {
+                        version = "1.0.0";
+                    }
                 }
             }
+
+            boolean singleton = registerServiceAnnotation.singleton();
+
+            log.info("Registering service: " + serviceName);
+
+            discoveryUtil.register(serviceName, version, environment, ttl, pingInterval, singleton);
+
+            // enable service deregistrator
+            this.deregistratorEnabled = true;
         }
-
-        boolean singleton = ((RegisterService) targetClass.getAnnotation(RegisterService.class)).singleton();
-
-        log.info("Registering service: " + serviceName);
-
-        discoveryUtil.register(serviceName, version, environment, ttl, pingInterval, singleton);
-
-        // enable service deregistrator
-        this.deregistratorEnabled = true;
     }
 
     /**

@@ -82,7 +82,7 @@ public class RegisterServiceProcessor extends AbstractProcessor {
             }
         }
 
-        return true;
+        return false;
     }
 
 
