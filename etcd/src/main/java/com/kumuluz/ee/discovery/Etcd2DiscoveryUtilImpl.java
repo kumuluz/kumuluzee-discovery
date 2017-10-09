@@ -27,6 +27,8 @@ import com.kumuluz.ee.discovery.utils.*;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import mousio.client.promises.ResponsePromise;
+import mousio.client.retry.RetryNTimes;
+import mousio.client.retry.RetryPolicy;
 import mousio.client.retry.RetryWithExponentialBackOff;
 import mousio.etcd4j.EtcdClient;
 import mousio.etcd4j.EtcdSecurityContext;
@@ -72,6 +74,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     private Map<String, String> lastKnownVersions;
 
     private EtcdClient etcd;
+    private RetryPolicy initialRequestRetryPolicy;
 
     private String clusterId;
 
@@ -152,7 +155,21 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             int startRetryDelay = InitializationUtils.getStartRetryDelayMs(configurationUtil, "etcd");
             int maxRetryDelay = InitializationUtils.getMaxRetryDelayMs(configurationUtil, "etcd");
 
-            etcd.setRetryHandler(new RetryWithExponentialBackOff(startRetryDelay, -1, maxRetryDelay));
+            RetryPolicy defaultRetryPolicy = new RetryWithExponentialBackOff(startRetryDelay, -1,
+                    maxRetryDelay);
+            etcd.setRetryHandler(defaultRetryPolicy);
+
+            int initialRetryCount = configurationUtil.getInteger("kumuluzee.discovery.etcd.initial-retry-count")
+                    .orElse(2);
+            if(initialRetryCount == 0) {
+                // do not retry policy
+                this.initialRequestRetryPolicy = new RetryNTimes(1, 0);
+            } else if(initialRetryCount > 0) {
+                this.initialRequestRetryPolicy = new RetryWithExponentialBackOff(startRetryDelay, initialRetryCount,
+                        maxRetryDelay);
+            } else {
+                this.initialRequestRetryPolicy = defaultRetryPolicy;
+            }
 
         } else {
             log.severe("No etcd server hosts provided. Specify hosts with configuration key" +
@@ -287,7 +304,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         if (!this.serviceInstances.containsKey(serviceName + "_" + version + "_" + environment)) {
 
             EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(etcd, Etcd2Utils.getServiceKeyInstances
-                    (environment, serviceName, version));
+                    (environment, serviceName, version), initialRequestRetryPolicy);
 
             HashMap<String, Etcd2Service> serviceUrls = new HashMap<>();
             if (etcdKeysResponse != null) {
@@ -354,9 +371,9 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
         List<URL> instances = new LinkedList<>();
 
-        if (presentServices != null) {
+        if (presentServices != null && presentServices.size() > 0) {
             URL gatewayUrl = getGatewayUrl(serviceName, version, environment);
-            if (accessType == AccessType.GATEWAY && gatewayUrl != null && presentServices.size() > 0) {
+            if (accessType == AccessType.GATEWAY && gatewayUrl != null) {
                 instances.add(gatewayUrl);
             } else {
                 for (Etcd2Service service : presentServices.values()) {
@@ -377,8 +394,8 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
             long index = 0;
             try {
-                EtcdKeysResponse etcdKeysResponse = etcd.get(getGatewayKey(environment, serviceName, version)).send()
-                        .get();
+                EtcdKeysResponse etcdKeysResponse = etcd.get(getGatewayKey(environment, serviceName, version))
+                        .setRetryPolicy(initialRequestRetryPolicy).send().get();
                 index = etcdKeysResponse.getNode().getModifiedIndex();
 
                 gatewayUrl = new URL(etcdKeysResponse.getNode().getValue());
@@ -420,7 +437,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     public Optional<List<String>> getServiceVersions(String serviceName, String environment) {
         if (!this.serviceVersions.containsKey(serviceName + "_" + environment)) {
             EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(etcd, getServiceKeyVersions(environment,
-                    serviceName));
+                    serviceName), initialRequestRetryPolicy);
 
             if (etcdKeysResponse != null) {
 
@@ -507,7 +524,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         List<String> presentVersions = this.serviceVersions.get(serviceName + "_" + environment);
 
         String lastKnownVersion = lastKnownVersions.get(serviceName + "_" + environment);
-        if (presentVersions == null || (lastKnownVersion != null && !presentVersions.contains(lastKnownVersion))) {
+        if (lastKnownVersion != null && (presentVersions == null || !presentVersions.contains(lastKnownVersion))) {
             // if present versions does not contain version of last known service, add it to the return object
 
             // make a copy of presentVersions
@@ -519,7 +536,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             presentVersions.add(lastKnownVersion);
         }
 
-        return Optional.of(presentVersions);
+        return Optional.ofNullable(presentVersions);
     }
 
     @Override
