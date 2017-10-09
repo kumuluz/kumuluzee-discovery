@@ -24,6 +24,7 @@ import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.annotations.DiscoverService;
 import com.kumuluz.ee.discovery.enums.AccessType;
+import com.kumuluz.ee.discovery.exceptions.ServiceNotFoundException;
 
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.inject.Produces;
@@ -50,7 +51,7 @@ public class DiscoverServiceProducer {
 
     @Produces
     @DiscoverService
-    public URL produceUrl(InjectionPoint injectionPoint) {
+    public Optional<URL> produceUrlOpt(InjectionPoint injectionPoint) {
 
         return getUrl(injectionPoint);
 
@@ -58,36 +59,65 @@ public class DiscoverServiceProducer {
 
     @Produces
     @DiscoverService
-    public String produceString(InjectionPoint injectionPoint) {
+    public Optional<String> produceStringOpt(InjectionPoint injectionPoint) {
 
-        URL url = getUrl(injectionPoint);
+        Optional<URL> url = getUrl(injectionPoint);
 
-        if (url != null) {
-            return url.toString();
+        return url.map(URL::toString);
+    }
+
+    @Produces
+    @DiscoverService
+    public Optional<WebTarget> produceWebTargetOpt(InjectionPoint injectionPoint) {
+
+        Optional<URL> url = getUrl(injectionPoint);
+        if (url.isPresent()) {
+            Client client = ClientBuilder.newClient();
+            try {
+                return Optional.of(client.target(url.get().toURI()));
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return Optional.empty();
+
+    }
+
+    @Produces
+    @DiscoverService
+    public URL produceUrl(InjectionPoint injectionPoint) {
+        Optional<URL> urlOpt = getUrl(injectionPoint);
+        if (urlOpt.isPresent()) {
+            return urlOpt.get();
         } else {
-            return null;
+            throw new ServiceNotFoundException("Service not found.");
+        }
+    }
+
+    @Produces
+    @DiscoverService
+    public String produceString(InjectionPoint injectionPoint) {
+        Optional<String> stringOpt = produceStringOpt(injectionPoint);
+        if (stringOpt.isPresent()) {
+            return stringOpt.get();
+        } else {
+            throw new ServiceNotFoundException("Service not found.");
         }
     }
 
     @Produces
     @DiscoverService
     public WebTarget produceWebTarget(InjectionPoint injectionPoint) {
-
-        Client client = ClientBuilder.newClient();
-        URL url = getUrl(injectionPoint);
-        if (url != null) {
-            try {
-                return client.target(url.toURI());
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            }
+        Optional<WebTarget> webTargetOpt = produceWebTargetOpt(injectionPoint);
+        if (webTargetOpt.isPresent()) {
+            return webTargetOpt.get();
+        } else {
+            throw new ServiceNotFoundException("Service not found.");
         }
-
-        return null;
-
     }
 
-    private URL getUrl(InjectionPoint injectionPoint) {
+    private Optional<URL> getUrl(InjectionPoint injectionPoint) {
 
         String serviceName = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).value();
         String environment = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).environment();
@@ -97,7 +127,7 @@ public class DiscoverServiceProducer {
         if (environment.isEmpty()) {
             environment = EeConfig.getInstance().getEnv().getName();
 
-            if(environment == null || environment.isEmpty()) {
+            if (environment == null || environment.isEmpty()) {
                 environment = ConfigurationUtil.getInstance().get("kumuluzee.env").orElse("dev");
             }
         }
@@ -105,9 +135,7 @@ public class DiscoverServiceProducer {
         log.info("Initializing field for service: " + serviceName + " version: " + version + " environment: " +
                 environment);
 
-        Optional<URL> serviceUrl = discoveryUtil.getServiceInstance(serviceName, version, environment, accessType);
-
-        return serviceUrl.orElse(null);
+        return discoveryUtil.getServiceInstance(serviceName, version, environment, accessType);
 
     }
 
