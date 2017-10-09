@@ -20,7 +20,9 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
+import mousio.client.retry.RetryPolicy;
 import mousio.etcd4j.EtcdClient;
+import mousio.etcd4j.requests.EtcdKeyGetRequest;
 import mousio.etcd4j.responses.EtcdAuthenticationException;
 import mousio.etcd4j.responses.EtcdException;
 import mousio.etcd4j.responses.EtcdKeysResponse;
@@ -37,14 +39,19 @@ import java.util.logging.Logger;
 public class Etcd2Utils {
     private static final Logger log = Logger.getLogger(Etcd2Utils.class.getName());
 
-    public static EtcdKeysResponse getEtcdDir(EtcdClient etcd, String key) {
+    public static EtcdKeysResponse getEtcdDir(EtcdClient etcd, String key, RetryPolicy retryPolicy) {
 
         EtcdKeysResponse etcdKeysResponse = null;
 
         if (etcd != null) {
 
             try {
-                etcdKeysResponse = etcd.getDir(key).recursive().send().get();
+                EtcdKeyGetRequest request = etcd.getDir(key).recursive();
+                if(retryPolicy != null) {
+                    request.setRetryPolicy(retryPolicy);
+                }
+
+                etcdKeysResponse = request.send().get();
             } catch (IOException e) {
                 log.info("IO Exception. Cannot read given key: " + e);
             } catch (EtcdException e) {
@@ -60,6 +67,10 @@ public class Etcd2Utils {
         }
 
         return etcdKeysResponse;
+    }
+
+    public static EtcdKeysResponse getEtcdDir(EtcdClient etcd, String key) {
+        return getEtcdDir(etcd, key, null);
     }
 
     public static String getLastKeyLayer(String key) {
