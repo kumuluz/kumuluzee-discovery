@@ -68,6 +68,9 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     private Map<String, List<String>> serviceVersions;
     private Map<String, URL> gatewayUrls;
 
+    private Map<String, Etcd2Service> lastKnownServices;
+    private Map<String, String> lastKnownVersions;
+
     private EtcdClient etcd;
 
     private String clusterId;
@@ -80,6 +83,8 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         this.serviceInstances = new HashMap<>();
         this.serviceVersions = new HashMap<>();
         this.gatewayUrls = new HashMap<>();
+        this.lastKnownServices = new HashMap<>();
+        this.lastKnownVersions = new HashMap<>();
 
         // get user credentials
         String etcdUsername = configurationUtil.get("kumuluzee.discovery.etcd.username").orElse(null);
@@ -335,45 +340,35 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                             etcdKeysResponse.etcdIndex + 1);
                 }
             }
-
-            List<URL> instances = new LinkedList<>();
-
-            URL gatewayUrl = getGatewayUrl(serviceName, version, environment);
-            if (accessType == AccessType.GATEWAY && gatewayUrl != null && serviceUrls.size() > 0) {
-                instances.add(gatewayUrl);
-            } else {
-                for (Etcd2Service service : serviceUrls.values()) {
-                    if (this.clusterId != null && this.clusterId.equals(service.getClusterId())) {
-                        instances.add(service.getContainerUrl());
-                    } else {
-                        instances.add(service.getBaseUrl());
-                    }
-                }
-            }
-            return Optional.of(instances);
-
-        } else {
-
-            List<URL> instances = new LinkedList<>();
-
-            URL gatewayUrl = getGatewayUrl(serviceName, version, environment);
-            if (accessType == AccessType.GATEWAY && gatewayUrl != null &&
-                    this.serviceInstances.get(serviceName + "_" + version + "_" + environment).size() > 0) {
-                instances.add(gatewayUrl);
-            } else {
-                for (Etcd2Service service : this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
-                        .values()) {
-                    if (this.clusterId != null && this.clusterId.equals(service.getClusterId())) {
-                        instances.add(service.getContainerUrl());
-                    } else {
-                        instances.add(service.getBaseUrl());
-                    }
-                }
-            }
-            return Optional.of(instances);
-
         }
 
+        Map<String, Etcd2Service> presentServices = this.serviceInstances
+                .get(serviceName + "_" + version + "_" + environment);
+        if ((presentServices == null || presentServices.size() == 0) && this.lastKnownServices
+                .containsKey(serviceName + "_" + version + "_" + environment)) {
+            // if no services are present, use the last known service
+            log.warning("No instances of " + serviceName + " found, using last known service.");
+            presentServices = Collections.singletonMap("lastKnownService", this.lastKnownServices
+                    .get(serviceName + "_" + version + "_" + environment));
+        }
+
+        List<URL> instances = new LinkedList<>();
+
+        if (presentServices != null) {
+            URL gatewayUrl = getGatewayUrl(serviceName, version, environment);
+            if (accessType == AccessType.GATEWAY && gatewayUrl != null && presentServices.size() > 0) {
+                instances.add(gatewayUrl);
+            } else {
+                for (Etcd2Service service : presentServices.values()) {
+                    if (this.clusterId != null && this.clusterId.equals(service.getClusterId())) {
+                        instances.add(service.getContainerUrl());
+                    } else {
+                        instances.add(service.getBaseUrl());
+                    }
+                }
+            }
+        }
+        return Optional.of(instances);
     }
 
     private URL getGatewayUrl(String serviceName, String version, String environment) {
@@ -506,12 +501,25 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 this.serviceVersions.put(serviceName + "_" + environment, versions);
                 watchServiceInstances(getServiceKeyVersions(environment, serviceName),
                         etcdKeysResponse.etcdIndex + 1);
-                return Optional.of(versions);
             }
-            return Optional.empty();
-        } else {
-            return Optional.of(this.serviceVersions.get(serviceName + "_" + environment));
         }
+
+        List<String> presentVersions = this.serviceVersions.get(serviceName + "_" + environment);
+
+        String lastKnownVersion = lastKnownVersions.get(serviceName + "_" + environment);
+        if (presentVersions == null || (lastKnownVersion != null && !presentVersions.contains(lastKnownVersion))) {
+            // if present versions does not contain version of last known service, add it to the return object
+
+            // make a copy of presentVersions
+            if (presentVersions != null) {
+                presentVersions = new LinkedList<>(presentVersions);
+            } else {
+                presentVersions = new LinkedList<>();
+            }
+            presentVersions.add(lastKnownVersion);
+        }
+
+        return Optional.of(presentVersions);
     }
 
     @Override
@@ -708,6 +716,14 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                             environment) && this.serviceInstances.get(serviceName + "_" + version + "_" +
                             environment).containsKey(node.getKey() + "/url")) {
                         log.info("Service instance TTL expired: " + node.getKey());
+                        if (this.serviceInstances.get(serviceName + "_" + version + "_" + environment).size() == 1) {
+                            // if removing last service, save it to separate buffer
+                            // this service will be returned, if no other services are present
+                            this.lastKnownServices.put(serviceName + "_" + version + "_" + environment,
+                                    this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                            .get(node.getKey() + "/url"));
+                            this.lastKnownVersions.put(serviceName + "_" + environment, version);
+                        }
                         this.serviceInstances.get(serviceName + "_" + version + "_" + environment).remove(node.getKey
                                 () + "/url");
                     }
