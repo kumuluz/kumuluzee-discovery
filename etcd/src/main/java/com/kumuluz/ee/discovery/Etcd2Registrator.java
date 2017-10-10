@@ -67,7 +67,7 @@ public class Etcd2Registrator implements Runnable {
                 handleTimeoutException(e);
             } catch (IOException e) {
                 log.info("IO Exception. Cannot put given key: " + e);
-            } catch(EtcdAuthenticationException e) {
+            } catch (EtcdAuthenticationException e) {
                 log.severe("Etcd authentication exception. Cannot put given key: " + e);
             } catch (EtcdException e) {
                 if (e.isErrorCode(100)) {
@@ -98,11 +98,11 @@ public class Etcd2Registrator implements Runnable {
                     etcd.putDir(this.serviceConfig.getServiceInstanceKey()).ttl(this.serviceConfig.getTtl())
                             .send().get();
                     etcd.put(this.serviceConfig.getServiceKeyUrl(), this.serviceConfig.getBaseUrl()).send().get();
-                    if(this.serviceConfig.getContainerUrl() != null) {
+                    if (this.serviceConfig.getContainerUrl() != null) {
                         etcd.put(this.serviceConfig.getServiceInstanceKey() + "/containerUrl",
                                 this.serviceConfig.getContainerUrl()).send().get();
                     }
-                    if(this.serviceConfig.getClusterId() != null) {
+                    if (this.serviceConfig.getClusterId() != null) {
                         etcd.put(this.serviceConfig.getServiceInstanceKey() + "/clusterId",
                                 this.serviceConfig.getClusterId()).send().get();
                     }
@@ -159,7 +159,7 @@ public class Etcd2Registrator implements Runnable {
 
     private void handleTimeoutException(Throwable e) {
         String message = "Timeout exception. Cannot put given key in time";
-        if(resilience) {
+        if (resilience) {
             log.severe(message + ": " + e);
         } else {
             RuntimeException ex = new EtcdNotAvailableException(message, e);

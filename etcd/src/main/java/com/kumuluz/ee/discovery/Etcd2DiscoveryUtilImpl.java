@@ -167,16 +167,16 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
             int initialRetryCount = configurationUtil.getInteger("kumuluzee.discovery.etcd.initial-retry-count")
                     .orElse(2);
-            if(initialRetryCount == 0) {
+            if (initialRetryCount == 0) {
                 this.initialRequestRetryPolicy = zeroRetryPolicy;
-            } else if(initialRetryCount > 0) {
+            } else if (initialRetryCount > 0) {
                 this.initialRequestRetryPolicy = new RetryWithExponentialBackOff(startRetryDelay, initialRetryCount,
                         maxRetryDelay);
             } else {
                 this.initialRequestRetryPolicy = defaultRetryPolicy;
             }
 
-            if(!resilience) {
+            if (!resilience) {
                 // set default and initial request retry policies to zero retry
                 etcd.setRetryHandler(zeroRetryPolicy);
                 this.initialRequestRetryPolicy = zeroRetryPolicy;
@@ -305,7 +305,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             }
         }
 
-        for(ScheduledFuture handle : this.registratorHandles) {
+        for (ScheduledFuture handle : this.registratorHandles) {
             handle.cancel(true);
         }
     }
@@ -416,7 +416,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 gatewayUrl = new URL(etcdKeysResponse.getNode().getValue());
             } catch (SocketException | TimeoutException e) {
                 String message = "Timeout exception. Cannot read given key in time";
-                if(resilience) {
+                if (resilience) {
                     log.severe(message + ": " + e);
                 } else {
                     throw new EtcdNotAvailableException(message, e);
@@ -865,7 +865,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 etcd.put(key, value).send().get();
             } catch (SocketException | TimeoutException e) {
                 String message = "Timeout exception. Cannot put given key in time";
-                if(resilience) {
+                if (resilience) {
                     log.severe(message + ": " + e);
                 } else {
                     throw new EtcdNotAvailableException(message, e);
