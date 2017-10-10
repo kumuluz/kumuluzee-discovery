@@ -20,6 +20,7 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
+import com.kumuluz.ee.discovery.exceptions.EtcdNotAvailableException;
 import mousio.client.retry.RetryPolicy;
 import mousio.etcd4j.EtcdClient;
 import mousio.etcd4j.requests.EtcdKeyGetRequest;
@@ -28,6 +29,7 @@ import mousio.etcd4j.responses.EtcdException;
 import mousio.etcd4j.responses.EtcdKeysResponse;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
@@ -39,7 +41,8 @@ import java.util.logging.Logger;
 public class Etcd2Utils {
     private static final Logger log = Logger.getLogger(Etcd2Utils.class.getName());
 
-    public static EtcdKeysResponse getEtcdDir(EtcdClient etcd, String key, RetryPolicy retryPolicy) {
+    public static EtcdKeysResponse getEtcdDir(EtcdClient etcd, String key, RetryPolicy retryPolicy,
+                                              boolean resilience) {
 
         EtcdKeysResponse etcdKeysResponse = null;
 
@@ -52,14 +55,19 @@ public class Etcd2Utils {
                 }
 
                 etcdKeysResponse = request.send().get();
+            } catch(SocketException | TimeoutException e) {
+                String message = "Timeout exception. Cannot read given key in time";
+                if(resilience) {
+                    log.severe(message + ": " + e);
+                } else {
+                    throw new EtcdNotAvailableException(message, e);
+                }
             } catch (IOException e) {
                 log.info("IO Exception. Cannot read given key: " + e);
             } catch (EtcdException e) {
                 log.info("Etcd exception. " + e);
             } catch (EtcdAuthenticationException e) {
                 log.severe("Etcd authentication exception. Cannot read given key: " + e);
-            } catch (TimeoutException e) {
-                log.severe("Timeout exception. Cannot read given key time: " + e);
             }
 
         } else {
@@ -69,8 +77,8 @@ public class Etcd2Utils {
         return etcdKeysResponse;
     }
 
-    public static EtcdKeysResponse getEtcdDir(EtcdClient etcd, String key) {
-        return getEtcdDir(etcd, key, null);
+    public static EtcdKeysResponse getEtcdDir(EtcdClient etcd, String key, boolean resilience) {
+        return getEtcdDir(etcd, key, null, resilience);
     }
 
     public static String getLastKeyLayer(String key) {

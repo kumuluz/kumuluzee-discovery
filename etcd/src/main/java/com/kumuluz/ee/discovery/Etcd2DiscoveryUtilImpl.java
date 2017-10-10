@@ -23,6 +23,7 @@ package com.kumuluz.ee.discovery;
 import com.kumuluz.ee.common.config.EeConfig;
 import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.enums.AccessType;
+import com.kumuluz.ee.discovery.exceptions.EtcdNotAvailableException;
 import com.kumuluz.ee.discovery.utils.*;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -48,10 +49,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 /**
@@ -65,6 +63,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     private final ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
 
     private List<Etcd2ServiceConfiguration> registeredServices;
+    private List<ScheduledFuture> registratorHandles;
 
     private Map<String, Map<String, Etcd2Service>> serviceInstances;
     private Map<String, List<String>> serviceVersions;
@@ -78,10 +77,13 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
     private String clusterId;
 
+    private boolean resilience;
+
     @PostConstruct
     public void init() {
 
         this.registeredServices = new LinkedList<>();
+        this.registratorHandles = new LinkedList<>();
 
         this.serviceInstances = new HashMap<>();
         this.serviceVersions = new HashMap<>();
@@ -152,6 +154,8 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
             }
 
+            this.resilience = configurationUtil.getBoolean("kumuluzee.discovery.resilience").orElse(true);
+
             int startRetryDelay = InitializationUtils.getStartRetryDelayMs(configurationUtil, "etcd");
             int maxRetryDelay = InitializationUtils.getMaxRetryDelayMs(configurationUtil, "etcd");
 
@@ -159,16 +163,23 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     maxRetryDelay);
             etcd.setRetryHandler(defaultRetryPolicy);
 
+            RetryPolicy zeroRetryPolicy = new RetryNTimes(1, 0);
+
             int initialRetryCount = configurationUtil.getInteger("kumuluzee.discovery.etcd.initial-retry-count")
                     .orElse(2);
-            if(initialRetryCount == 0) {
-                // do not retry policy
-                this.initialRequestRetryPolicy = new RetryNTimes(1, 0);
-            } else if(initialRetryCount > 0) {
+            if (initialRetryCount == 0) {
+                this.initialRequestRetryPolicy = zeroRetryPolicy;
+            } else if (initialRetryCount > 0) {
                 this.initialRequestRetryPolicy = new RetryWithExponentialBackOff(startRetryDelay, initialRetryCount,
                         maxRetryDelay);
             } else {
                 this.initialRequestRetryPolicy = defaultRetryPolicy;
+            }
+
+            if (!resilience) {
+                // set default and initial request retry policies to zero retry
+                etcd.setRetryHandler(zeroRetryPolicy);
+                this.initialRequestRetryPolicy = zeroRetryPolicy;
             }
 
         } else {
@@ -273,9 +284,9 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
         this.registeredServices.add(serviceConfiguration);
 
-        Etcd2Registrator registrator = new Etcd2Registrator(etcd, serviceConfiguration);
-        scheduler.scheduleWithFixedDelay(registrator, 0, pingInterval, TimeUnit.SECONDS);
-
+        Etcd2Registrator registrator = new Etcd2Registrator(etcd, serviceConfiguration, resilience);
+        ScheduledFuture handle = scheduler.scheduleWithFixedDelay(registrator, 0, pingInterval, TimeUnit.SECONDS);
+        this.registratorHandles.add(handle);
     }
 
     @Override
@@ -293,6 +304,10 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 }
             }
         }
+
+        for (ScheduledFuture handle : this.registratorHandles) {
+            handle.cancel(true);
+        }
     }
 
     @Override
@@ -304,7 +319,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         if (!this.serviceInstances.containsKey(serviceName + "_" + version + "_" + environment)) {
 
             EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(etcd, Etcd2Utils.getServiceKeyInstances
-                    (environment, serviceName, version), initialRequestRetryPolicy);
+                    (environment, serviceName, version), initialRequestRetryPolicy, this.resilience);
 
             HashMap<String, Etcd2Service> serviceUrls = new HashMap<>();
             if (etcdKeysResponse != null) {
@@ -399,6 +414,13 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 index = etcdKeysResponse.getNode().getModifiedIndex();
 
                 gatewayUrl = new URL(etcdKeysResponse.getNode().getValue());
+            } catch (SocketException | TimeoutException e) {
+                String message = "Timeout exception. Cannot read given key in time";
+                if (resilience) {
+                    log.severe(message + ": " + e);
+                } else {
+                    throw new EtcdNotAvailableException(message, e);
+                }
             } catch (MalformedURLException e) {
                 log.severe("Malformed URL exception: " + e.toString());
             } catch (IOException e) {
@@ -410,8 +432,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 }
             } catch (EtcdAuthenticationException e) {
                 log.severe("Etcd authentication exception. Cannot read given key: " + e);
-            } catch (TimeoutException e) {
-                log.severe("Timeout exception. Cannot read given key time: " + e);
             }
 
             this.gatewayUrls.put(serviceName + "_" + version + "_" + environment, gatewayUrl);
@@ -437,7 +457,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     public Optional<List<String>> getServiceVersions(String serviceName, String environment) {
         if (!this.serviceVersions.containsKey(serviceName + "_" + environment)) {
             EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(etcd, getServiceKeyVersions(environment,
-                    serviceName), initialRequestRetryPolicy);
+                    serviceName), initialRequestRetryPolicy, this.resilience);
 
             if (etcdKeysResponse != null) {
 
@@ -545,7 +565,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
         String key = Etcd2Utils.getServiceKeyInstances(environment, serviceName, version);
 
-        EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(etcd, key);
+        EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(etcd, key, this.resilience);
         if (etcdKeysResponse != null) {
 
             for (EtcdKeysResponse.EtcdNode instance : etcdKeysResponse.getNode().getNodes()) {
@@ -843,14 +863,19 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
             try {
                 etcd.put(key, value).send().get();
+            } catch (SocketException | TimeoutException e) {
+                String message = "Timeout exception. Cannot put given key in time";
+                if (resilience) {
+                    log.severe(message + ": " + e);
+                } else {
+                    throw new EtcdNotAvailableException(message, e);
+                }
             } catch (IOException e) {
-                log.info("IO Exception. Cannot read given key: " + e);
+                log.info("IO Exception. Cannot put given key: " + e);
             } catch (EtcdException e) {
                 log.info("Etcd exception. " + e);
             } catch (EtcdAuthenticationException e) {
-                log.severe("Etcd authentication exception. Cannot read given key: " + e);
-            } catch (TimeoutException e) {
-                log.severe("Timeout exception. Cannot read given key time: " + e);
+                log.severe("Etcd authentication exception. Cannot put given key: " + e);
             }
 
         } else {

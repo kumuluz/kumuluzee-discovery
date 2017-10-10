@@ -20,6 +20,7 @@
 */
 package com.kumuluz.ee.discovery;
 
+import com.kumuluz.ee.discovery.exceptions.EtcdNotAvailableException;
 import com.kumuluz.ee.discovery.utils.Etcd2ServiceConfiguration;
 import com.kumuluz.ee.discovery.utils.Etcd2Utils;
 import mousio.etcd4j.EtcdClient;
@@ -28,6 +29,7 @@ import mousio.etcd4j.responses.EtcdException;
 import mousio.etcd4j.responses.EtcdKeysResponse;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
@@ -41,12 +43,14 @@ public class Etcd2Registrator implements Runnable {
 
     private EtcdClient etcd;
     private Etcd2ServiceConfiguration serviceConfig;
+    private boolean resilience;
 
     private boolean isRegistered;
 
-    public Etcd2Registrator(EtcdClient etcd, Etcd2ServiceConfiguration serviceConfig) {
+    public Etcd2Registrator(EtcdClient etcd, Etcd2ServiceConfiguration serviceConfig, boolean resilience) {
         this.etcd = etcd;
         this.serviceConfig = serviceConfig;
+        this.resilience = resilience;
     }
 
     public void run() {
@@ -59,8 +63,12 @@ public class Etcd2Registrator implements Runnable {
             try {
                 this.etcd.putDir(this.serviceConfig.getServiceInstanceKey()).prevExist(true)
                         .refresh(this.serviceConfig.getTtl()).send().get();
-            } catch (IOException | EtcdAuthenticationException | TimeoutException e) {
-                e.printStackTrace();
+            } catch (SocketException | TimeoutException e) {
+                handleTimeoutException(e);
+            } catch (IOException e) {
+                log.info("IO Exception. Cannot put given key: " + e);
+            } catch (EtcdAuthenticationException e) {
+                log.severe("Etcd authentication exception. Cannot put given key: " + e);
             } catch (EtcdException e) {
                 if (e.isErrorCode(100)) {
                     log.warning("Etcd key not present: " + this.serviceConfig.getServiceInstanceKey() +
@@ -90,24 +98,24 @@ public class Etcd2Registrator implements Runnable {
                     etcd.putDir(this.serviceConfig.getServiceInstanceKey()).ttl(this.serviceConfig.getTtl())
                             .send().get();
                     etcd.put(this.serviceConfig.getServiceKeyUrl(), this.serviceConfig.getBaseUrl()).send().get();
-                    if(this.serviceConfig.getContainerUrl() != null) {
+                    if (this.serviceConfig.getContainerUrl() != null) {
                         etcd.put(this.serviceConfig.getServiceInstanceKey() + "/containerUrl",
                                 this.serviceConfig.getContainerUrl()).send().get();
                     }
-                    if(this.serviceConfig.getClusterId() != null) {
+                    if (this.serviceConfig.getClusterId() != null) {
                         etcd.put(this.serviceConfig.getServiceInstanceKey() + "/clusterId",
                                 this.serviceConfig.getClusterId()).send().get();
                     }
 
                     this.isRegistered = true;
+                } catch (SocketException | TimeoutException e) {
+                    handleTimeoutException(e);
                 } catch (IOException e) {
-                    log.info("IO Exception. Cannot read given key: " + e);
+                    log.info("IO Exception. Cannot put given key: " + e);
                 } catch (EtcdException e) {
                     log.info("Etcd exception. " + e);
                 } catch (EtcdAuthenticationException e) {
-                    log.severe("Etcd authentication exception. Cannot read given key: " + e);
-                } catch (TimeoutException e) {
-                    log.severe("Timeout exception. Cannot read given key time: " + e);
+                    log.severe("Etcd authentication exception. Cannot put given key: " + e);
                 }
             } else {
                 log.severe("etcd not initialised.");
@@ -120,7 +128,7 @@ public class Etcd2Registrator implements Runnable {
         String serviceInstancesKey = Etcd2Utils.getServiceKeyInstances(this.serviceConfig.getEnvironment(),
                 this.serviceConfig.getServiceName(), this.serviceConfig.getServiceVersion());
 
-        EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(this.etcd, serviceInstancesKey);
+        EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(this.etcd, serviceInstancesKey, this.resilience);
 
         if (etcdKeysResponse != null) {
             for (EtcdKeysResponse.EtcdNode node : etcdKeysResponse.getNode().getNodes()) {
@@ -147,5 +155,17 @@ public class Etcd2Registrator implements Runnable {
         }
 
         return false;
+    }
+
+    private void handleTimeoutException(Throwable e) {
+        String message = "Timeout exception. Cannot put given key in time";
+        if (resilience) {
+            log.severe(message + ": " + e);
+        } else {
+            RuntimeException ex = new EtcdNotAvailableException(message, e);
+            // print stack trace, because Exceptions in scheduler are not reported
+            ex.printStackTrace();
+            throw ex; // stops the scheduler
+        }
     }
 }
