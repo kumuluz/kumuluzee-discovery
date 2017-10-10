@@ -49,10 +49,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 /**
@@ -66,6 +63,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     private final ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
 
     private List<Etcd2ServiceConfiguration> registeredServices;
+    private List<ScheduledFuture> registratorHandles;
 
     private Map<String, Map<String, Etcd2Service>> serviceInstances;
     private Map<String, List<String>> serviceVersions;
@@ -85,6 +83,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     public void init() {
 
         this.registeredServices = new LinkedList<>();
+        this.registratorHandles = new LinkedList<>();
 
         this.serviceInstances = new HashMap<>();
         this.serviceVersions = new HashMap<>();
@@ -286,8 +285,8 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         this.registeredServices.add(serviceConfiguration);
 
         Etcd2Registrator registrator = new Etcd2Registrator(etcd, serviceConfiguration, resilience);
-        scheduler.scheduleWithFixedDelay(registrator, 0, pingInterval, TimeUnit.SECONDS);
-
+        ScheduledFuture handle = scheduler.scheduleWithFixedDelay(registrator, 0, pingInterval, TimeUnit.SECONDS);
+        this.registratorHandles.add(handle);
     }
 
     @Override
@@ -304,6 +303,10 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     log.severe("Cannot deregister service. Error: " + e.toString());
                 }
             }
+        }
+
+        for(ScheduledFuture handle : this.registratorHandles) {
+            handle.cancel(true);
         }
     }
 
