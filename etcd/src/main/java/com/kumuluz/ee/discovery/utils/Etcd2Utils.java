@@ -50,15 +50,16 @@ public class Etcd2Utils {
 
             try {
                 EtcdKeyGetRequest request = etcd.getDir(key).recursive();
-                if(retryPolicy != null) {
+                if (retryPolicy != null) {
                     request.setRetryPolicy(retryPolicy);
                 }
 
                 etcdKeysResponse = request.send().get();
-            } catch(SocketException | TimeoutException e) {
-                String message = "Timeout exception. Cannot read given key in time";
-                if(resilience) {
-                    log.severe(message + ": " + e);
+            } catch (SocketException | TimeoutException e) {
+                String message = "Timeout exception. Cannot read given key in specified time or retry-count " +
+                        "constraints.";
+                if (resilience) {
+                    log.warning(message + " Error: " + e);
                 } else {
                     throw new EtcdNotAvailableException(message, e);
                 }

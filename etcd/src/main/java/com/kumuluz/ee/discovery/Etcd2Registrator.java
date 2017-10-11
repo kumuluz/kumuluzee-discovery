@@ -158,9 +158,10 @@ public class Etcd2Registrator implements Runnable {
     }
 
     private void handleTimeoutException(Throwable e) {
-        String message = "Timeout exception. Cannot put given key in time";
+        String message = "Timeout exception. Cannot read given key in specified time or retry-count " +
+                "constraints.";
         if (resilience) {
-            log.severe(message + ": " + e);
+            log.warning(message + " Error: " + e);
         } else {
             RuntimeException ex = new EtcdNotAvailableException(message, e);
             // print stack trace, because Exceptions in scheduler are not reported

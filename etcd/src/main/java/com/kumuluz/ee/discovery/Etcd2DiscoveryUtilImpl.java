@@ -166,7 +166,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             RetryPolicy zeroRetryPolicy = new RetryNTimes(1, 0);
 
             int initialRetryCount = configurationUtil.getInteger("kumuluzee.discovery.etcd.initial-retry-count")
-                    .orElse(2);
+                    .orElse(1);
             if (initialRetryCount == 0) {
                 this.initialRequestRetryPolicy = zeroRetryPolicy;
             } else if (initialRetryCount > 0) {
@@ -319,7 +319,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         if (!this.serviceInstances.containsKey(serviceName + "_" + version + "_" + environment)) {
 
             EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(etcd, Etcd2Utils.getServiceKeyInstances
-                    (environment, serviceName, version), initialRequestRetryPolicy, this.resilience);
+                    (environment, serviceName, version), this.initialRequestRetryPolicy, this.resilience);
 
             HashMap<String, Etcd2Service> serviceUrls = new HashMap<>();
             if (etcdKeysResponse != null) {
@@ -410,14 +410,15 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             long index = 0;
             try {
                 EtcdKeysResponse etcdKeysResponse = etcd.get(getGatewayKey(environment, serviceName, version))
-                        .setRetryPolicy(initialRequestRetryPolicy).send().get();
+                        .setRetryPolicy(this.initialRequestRetryPolicy).send().get();
                 index = etcdKeysResponse.getNode().getModifiedIndex();
 
                 gatewayUrl = new URL(etcdKeysResponse.getNode().getValue());
             } catch (SocketException | TimeoutException e) {
-                String message = "Timeout exception. Cannot read given key in time";
+                String message = "Timeout exception. Cannot read given key in specified time or retry-count " +
+                        "constraints.";
                 if (resilience) {
-                    log.severe(message + ": " + e);
+                    log.warning(message + " Error: " + e);
                 } else {
                     throw new EtcdNotAvailableException(message, e);
                 }
@@ -457,7 +458,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     public Optional<List<String>> getServiceVersions(String serviceName, String environment) {
         if (!this.serviceVersions.containsKey(serviceName + "_" + environment)) {
             EtcdKeysResponse etcdKeysResponse = Etcd2Utils.getEtcdDir(etcd, getServiceKeyVersions(environment,
-                    serviceName), initialRequestRetryPolicy, this.resilience);
+                    serviceName), this.initialRequestRetryPolicy, this.resilience);
 
             if (etcdKeysResponse != null) {
 
@@ -864,9 +865,10 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             try {
                 etcd.put(key, value).send().get();
             } catch (SocketException | TimeoutException e) {
-                String message = "Timeout exception. Cannot put given key in time";
+                String message = "Timeout exception. Cannot read given key in specified time or retry-count " +
+                        "constraints.";
                 if (resilience) {
-                    log.severe(message + ": " + e);
+                    log.warning(message + " Error: " + e);
                 } else {
                     throw new EtcdNotAvailableException(message, e);
                 }
