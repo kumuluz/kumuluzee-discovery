@@ -29,9 +29,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.annotation.WebListener;
 import javax.ws.rs.core.Application;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,35 +39,22 @@ import java.util.logging.Logger;
  * Interceptor class for RegisterService annotation.
  */
 @ApplicationScoped
-@WebListener
-public class RegisterServiceUtil implements ServletContextListener {
+public class RegisterServiceUtil {
 
     private static final Logger log = Logger.getLogger(RegisterServiceUtil.class.getName());
 
-    private boolean beanInitialised;
     private boolean deregistratorEnabled;
 
     @Inject
     private DiscoveryUtil discoveryUtil;
 
-    @Override
-    public void contextInitialized(ServletContextEvent servletContextEvent) {
-
-        if (!beanInitialised) {
-            beanInitialised = initialiseBean();
-        }
-
-    }
-
     public void cdiInitialized(@Observes @Initialized(ApplicationScoped.class) Object init) {
 
-        if (!beanInitialised) {
-            beanInitialised = initialiseBean();
-        }
+        initialiseBean();
 
     }
 
-    private boolean initialiseBean() {
+    private void initialiseBean() {
 
         List<Application> applications = new ArrayList<>();
 
@@ -80,8 +64,6 @@ public class RegisterServiceUtil implements ServletContextListener {
             log.info("Registering JAX-RS application class: " + application.getClass().getSimpleName());
             registerService(application.getClass());
         }
-
-        return true;
     }
 
     /**
@@ -184,8 +166,4 @@ public class RegisterServiceUtil implements ServletContextListener {
         }
     }
 
-    @Override
-    public void contextDestroyed(ServletContextEvent servletContextEvent) {
-
-    }
 }
