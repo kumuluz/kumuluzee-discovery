@@ -326,6 +326,13 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     }
 
     @Override
+    public Optional<URL> getServiceInstance(String serviceName, String version, String environment) {
+
+        return getServiceInstance(serviceName, version, environment, AccessType.DIRECT);
+
+    }
+
+    @Override
     public Optional<List<String>> getServiceVersions(String serviceName, String environment) {
         String consulServiceKey = ConsulUtils.getConsulServiceKey(serviceName, environment);
         if (!this.serviceVersions.containsKey(consulServiceKey)) {

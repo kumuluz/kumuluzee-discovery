@@ -39,7 +39,26 @@ public interface DiscoveryUtil {
     Optional<List<URL>> getServiceInstances(String serviceName, String version, String environment,
                                             AccessType accessType);
 
+    /**
+     * Return service instance.
+     *
+     * @param serviceName service name
+     * @param version     service version
+     * @param environment service environment
+     * @param accessType  access type: direct or gateway
+     * @return
+     */
     Optional<URL> getServiceInstance(String serviceName, String version, String environment, AccessType accessType);
+
+    /**
+     * Return service instance.
+     *
+     * @param serviceName service name
+     * @param version     service version
+     * @param environment service environment
+     * @return
+     */
+    Optional<URL> getServiceInstance(String serviceName, String version, String environment);
 
     Optional<List<String>> getServiceVersions(String serviceName, String environment);
 

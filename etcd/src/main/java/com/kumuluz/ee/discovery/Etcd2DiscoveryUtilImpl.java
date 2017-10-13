@@ -304,9 +304,10 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 }
             }
 
-            log.info("Closing etcd connection.");
+            log.info("Closing etcd connection for Discovery extension.");
             try {
                 etcd.close();
+                etcd = null;
             } catch (IOException e) {
                 log.severe("Could not close etcd extension. Exception: " + e.getMessage());
             }
@@ -459,6 +460,13 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 accessType);
 
         return optionalServiceInstances.flatMap(CommonUtils::pickServiceInstanceRoundRobin);
+    }
+
+    @Override
+    public Optional<URL> getServiceInstance(String serviceName, String version, String environment) {
+
+        return getServiceInstance(serviceName, version, environment, AccessType.DIRECT);
+
     }
 
     @Override
