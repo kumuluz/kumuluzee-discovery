@@ -298,10 +298,17 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                         " Service ID: " + serviceConfiguration.getServiceKeyUrl());
 
                 try {
-                    etcd.delete(serviceConfiguration.getServiceKeyUrl()).send();
-                } catch (IOException e) {
+                    etcd.delete(serviceConfiguration.getServiceKeyUrl()).send().get();
+                } catch (IOException | EtcdException | EtcdAuthenticationException | TimeoutException e) {
                     log.severe("Cannot deregister service. Error: " + e.toString());
                 }
+            }
+
+            log.info("Closing etcd connection.");
+            try {
+                etcd.close();
+            } catch (IOException e) {
+                log.severe("Could not close etcd extension. Exception: " + e.getMessage());
             }
         }
 

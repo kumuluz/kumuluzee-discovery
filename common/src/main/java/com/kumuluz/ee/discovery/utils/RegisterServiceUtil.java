@@ -43,8 +43,6 @@ public class RegisterServiceUtil {
 
     private static final Logger log = Logger.getLogger(RegisterServiceUtil.class.getName());
 
-    private boolean deregistratorEnabled;
-
     @Inject
     private DiscoveryUtil discoveryUtil;
 
@@ -142,8 +140,6 @@ public class RegisterServiceUtil {
 
             discoveryUtil.register(serviceName, version, environment, ttl, pingInterval, singleton);
 
-            // enable service deregistrator
-            this.deregistratorEnabled = true;
         }
     }
 
@@ -160,10 +156,7 @@ public class RegisterServiceUtil {
 
     @PreDestroy
     public void deregisterService() {
-
-        if (deregistratorEnabled) {
-            discoveryUtil.deregister();
-        }
+        discoveryUtil.deregister();
     }
 
 }
