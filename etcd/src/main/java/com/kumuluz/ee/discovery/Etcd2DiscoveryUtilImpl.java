@@ -29,6 +29,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import mousio.client.promises.ResponsePromise;
 import mousio.client.retry.RetryNTimes;
+import mousio.client.retry.RetryOnce;
 import mousio.client.retry.RetryPolicy;
 import mousio.client.retry.RetryWithExponentialBackOff;
 import mousio.etcd4j.EtcdClient;
@@ -298,7 +299,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                         " Service ID: " + serviceConfiguration.getServiceKeyUrl());
 
                 try {
-                    etcd.delete(serviceConfiguration.getServiceKeyUrl()).send().get();
+                    etcd.delete(serviceConfiguration.getServiceKeyUrl()).setRetryPolicy(new RetryOnce(0)).send().get();
                 } catch (IOException | EtcdException | EtcdAuthenticationException | TimeoutException e) {
                     log.severe("Cannot deregister service. Error: " + e.toString());
                 }
