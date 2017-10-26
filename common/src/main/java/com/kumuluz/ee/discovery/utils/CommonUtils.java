@@ -31,7 +31,11 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * @author Jan Meznarič, Urban Malc
+ * Common utils for service discovery.
+ *
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class CommonUtils {
 

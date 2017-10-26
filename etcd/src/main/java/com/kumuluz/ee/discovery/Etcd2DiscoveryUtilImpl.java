@@ -54,7 +54,11 @@ import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 /**
- * @author Jan Meznarič, Urban Malc
+ * Implementation of a DiscoveryUtil interface.
+ *
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 @ApplicationScoped
 public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {

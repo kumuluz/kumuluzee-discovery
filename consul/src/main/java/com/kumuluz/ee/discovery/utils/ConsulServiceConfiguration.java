@@ -26,6 +26,7 @@ import com.kumuluz.ee.common.runtime.EeRuntime;
  * Service configuration data.
  *
  * @author Urban Malc
+ * @since 1.0.0
  */
 public class ConsulServiceConfiguration {
     private String serviceName;

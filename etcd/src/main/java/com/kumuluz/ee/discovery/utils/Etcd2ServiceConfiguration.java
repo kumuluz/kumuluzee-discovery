@@ -26,6 +26,8 @@ import com.kumuluz.ee.common.runtime.EeRuntime;
  * Service configuration data.
  *
  * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class Etcd2ServiceConfiguration {
     private String serviceName;

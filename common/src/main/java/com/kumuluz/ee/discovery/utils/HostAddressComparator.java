@@ -25,7 +25,11 @@ import java.net.InetAddress;
 import java.util.Comparator;
 
 /**
- * @author Jan Meznarič, Urban Malc
+ * Host address comparator.
+ *
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class HostAddressComparator implements Comparator<InetAddress> {
 
@@ -41,17 +45,17 @@ public class HostAddressComparator implements Comparator<InetAddress> {
     }
 
     private static int getAddressPriority(InetAddress address) {
-        if(address instanceof Inet4Address) {
-            if(!address.isLoopbackAddress()) {
+        if (address instanceof Inet4Address) {
+            if (!address.isLoopbackAddress()) {
                 return PRIORITY_IPV4;
             } else {
                 return PRIORITY_IPV4_LOOPBACK;
             }
         } else {
-            if(address.isLoopbackAddress()) {
+            if (address.isLoopbackAddress()) {
                 return PRIORITY_IPV6_LOOPBACK;
             }
-            if(address.isLinkLocalAddress()) {
+            if (address.isLinkLocalAddress()) {
                 return PRIORITY_IPV6_LINK_LOCAL;
             }
 

@@ -21,7 +21,11 @@
 package com.kumuluz.ee.discovery.enums;
 
 /**
- * @author Jan Meznarič, Urban Malc
+ * Access type used for service discovery
+ *
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public enum AccessType {
     GATEWAY,

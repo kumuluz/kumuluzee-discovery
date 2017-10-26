@@ -27,7 +27,11 @@ import java.net.URL;
 import java.util.logging.Logger;
 
 /**
- * @author Jan Meznarič, Urban Malc
+ * Representation of a service as used by Consul.
+ *
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class ConsulService {
 
@@ -60,14 +64,14 @@ public class ConsulService {
 
     public static ConsulService getInstanceFromServiceHealth(ServiceHealth serviceHealth) {
         URL url = serviceHealthToURL(serviceHealth);
-        if(url != null) {
+        if (url != null) {
             String version = null;
-            for(String tag : serviceHealth.getService().getTags()) {
-                if(tag.startsWith(TAG_VERSION_PREFIX)) {
+            for (String tag : serviceHealth.getService().getTags()) {
+                if (tag.startsWith(TAG_VERSION_PREFIX)) {
                     version = tag.substring(TAG_VERSION_PREFIX.length());
                 }
             }
-            if(version == null || version.isEmpty()) {
+            if (version == null || version.isEmpty()) {
                 version = "1.0.0";
             }
 

@@ -21,8 +21,11 @@
 package com.kumuluz.ee.discovery.exceptions;
 
 /**
+ * Exception thrown if no instance of a service can be found.
+ *
  * @author Urban Malc
  * @author Jan Meznarič
+ * @since 1.0.0
  */
 public class ServiceNotFoundException extends RuntimeException {
 

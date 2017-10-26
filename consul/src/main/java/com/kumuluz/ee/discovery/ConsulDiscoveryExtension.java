@@ -31,9 +31,11 @@ import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
 import java.util.logging.Logger;
 
 /**
- * KumuluzEE framework extension for Consul-based service discovery
+ * KumuluzEE framework extension for Consul-based service discovery.
  *
- * @author Jan Meznarič, Urban Malc
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 @EeExtensionDef(name = "Consul", group = EeExtensionGroup.DISCOVERY)
 @EeComponentDependency(EeComponentType.CDI)

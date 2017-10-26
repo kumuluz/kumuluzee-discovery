@@ -23,9 +23,11 @@ package com.kumuluz.ee.discovery.utils;
 import java.net.URL;
 
 /**
- * Runnable for service registration and heartbeats
+ * Runnable for service registration and heartbeats.
  *
- * @author Jan Meznarič, Urban Malc
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class Etcd2Service {
 
@@ -44,7 +46,7 @@ public class Etcd2Service {
     }
 
     public URL getContainerUrl() {
-        if(containerUrl != null) {
+        if (containerUrl != null) {
             return this.containerUrl;
         } else {
             return this.baseUrl;

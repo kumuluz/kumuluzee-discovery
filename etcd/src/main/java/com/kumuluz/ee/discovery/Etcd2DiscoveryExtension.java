@@ -29,9 +29,10 @@ import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
 import java.util.logging.Logger;
 
 /**
- * KumuluzEE framework extension for etcd-based service discovery
+ * KumuluzEE framework extension for etcd-based service discovery.
  *
  * @author Jan Meznarič
+ * @since 1.0.0
  */
 @EeExtensionDef(name = "etcd", group = EeExtensionGroup.DISCOVERY)
 @EeComponentDependencies({

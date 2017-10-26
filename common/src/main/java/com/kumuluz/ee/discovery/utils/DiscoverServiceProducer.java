@@ -40,6 +40,9 @@ import java.util.logging.Logger;
 
 /**
  * Producer for DiscoverService annotation.
+ *
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 @RequestScoped
 public class DiscoverServiceProducer {

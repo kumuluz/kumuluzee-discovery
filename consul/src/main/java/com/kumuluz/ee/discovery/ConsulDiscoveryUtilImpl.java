@@ -48,7 +48,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 /**
- * @author Jan Meznarič, Urban Malc
+ * Implementation of DiscoveryUtil interface.
+ *
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 @ApplicationScoped
 public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {

@@ -28,8 +28,10 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation enables automatic service registration.
+ *
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
-
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RegisterService {

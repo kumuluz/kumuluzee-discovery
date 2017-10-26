@@ -27,7 +27,10 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * @author Jan Meznarič
+ * Interface for service discovery.
+ *
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public interface DiscoveryUtil {
 

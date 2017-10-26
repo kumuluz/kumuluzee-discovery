@@ -40,6 +40,7 @@ import java.util.Set;
  * Compile-time annotation processor for RegisterService annotation. Generates service file.
  *
  * @author Jan Meznarič
+ * @since 1.0.0
  */
 public class RegisterServiceProcessor extends AbstractProcessor {
 

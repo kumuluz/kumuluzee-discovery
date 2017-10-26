@@ -36,7 +36,10 @@ import java.util.ServiceLoader;
 import java.util.logging.Logger;
 
 /**
- * Interceptor class for RegisterService annotation.
+ * Class for initialising service registration based on RegisterService annotation.
+ *
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 @ApplicationScoped
 public class RegisterServiceUtil {

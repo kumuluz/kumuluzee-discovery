@@ -25,14 +25,18 @@ import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import java.util.Optional;
 
 /**
- * @author Jan Meznarič, Urban Malc
+ * Util class for service registration.
+ *
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class InitializationUtils {
 
     public static int getStartRetryDelayMs(ConfigurationUtil configurationUtil, String implementation) {
         Optional<Integer> universalConfig = configurationUtil
                 .getInteger("kumuluzee.discovery.start-retry-delay-ms");
-        if(universalConfig.isPresent()) {
+        if (universalConfig.isPresent()) {
             return universalConfig.get();
         } else {
             return configurationUtil.getInteger("kumuluzee.discovery." + implementation + ".start-retry-delay-ms")
@@ -42,7 +46,7 @@ public class InitializationUtils {
 
     public static int getMaxRetryDelayMs(ConfigurationUtil configurationUtil, String implementation) {
         Optional<Integer> universalConfig = configurationUtil.getInteger("kumuluzee.discovery.max-retry-delay-ms");
-        if(universalConfig.isPresent()) {
+        if (universalConfig.isPresent()) {
             return universalConfig.get();
         } else {
             return configurationUtil.getInteger("kumuluzee.discovery." + implementation + ".max-retry-delay-ms")

@@ -21,8 +21,11 @@
 package com.kumuluz.ee.discovery.exceptions;
 
 /**
+ * Exception thrown if etcd is not available and resilience mode is disabled.
+ *
  * @author Urban Malc
  * @author Jan Meznarič
+ * @since 1.0.0
  */
 public class EtcdNotAvailableException extends RuntimeException {
 

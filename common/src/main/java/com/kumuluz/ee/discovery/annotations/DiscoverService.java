@@ -30,11 +30,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation for injecting service URL
- * <p>
- * value - service name
- * environment - service environment
- * version - service version
+ * Annotation for injecting service URL.
+ *
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 @Qualifier
 @Retention(RetentionPolicy.RUNTIME)

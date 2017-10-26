@@ -36,7 +36,9 @@ import java.util.logging.Logger;
 /**
  * Runnable for service registration and heartbeats
  *
- * @author Jan Meznarič, Urban Malc
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class ConsulRegistrator implements Runnable {
     private static final Logger log = Logger.getLogger(ConsulRegistrator.class.getName());
@@ -62,7 +64,7 @@ public class ConsulRegistrator implements Runnable {
 
     @Override
     public void run() {
-        if(!this.isRegistered) {
+        if (!this.isRegistered) {
             this.registerToConsul();
         } else {
             sendHeartbeat();
@@ -74,7 +76,7 @@ public class ConsulRegistrator implements Runnable {
         try {
             agentClient.pass(this.serviceConfiguration.getServiceId());
         } catch (NotRegisteredException e) {
-            log.warning("Received NotRegisteredException from Consul AgentClient when sending heartbeat. "  +
+            log.warning("Received NotRegisteredException from Consul AgentClient when sending heartbeat. " +
                     "Reregistering service.");
             this.isRegistered = false;
             this.registerToConsul();
@@ -82,7 +84,7 @@ public class ConsulRegistrator implements Runnable {
     }
 
     private void registerToConsul() {
-        if(this.serviceConfiguration.isSingleton() && isRegistered()) {
+        if (this.serviceConfiguration.isSingleton() && isRegistered()) {
             log.warning("Instance was not registered. Trying to register a singleton microservice instance, but " +
                     "another instance is already registered.");
         } else {
@@ -90,12 +92,12 @@ public class ConsulRegistrator implements Runnable {
                     " Service ID: " + this.serviceConfiguration.getServiceId());
 
             if (agentClient != null) {
-                while(!this.isRegistered) {
+                while (!this.isRegistered) {
                     try {
                         ImmutableRegCheck.Builder ttlCheckBuilder = ImmutableRegCheck.builder()
                                 .ttl(String.format("%ss", this.serviceConfiguration.getTtl()));
 
-                        if(this.serviceConfiguration.getDeregisterCriticalServiceAfter() != 0) {
+                        if (this.serviceConfiguration.getDeregisterCriticalServiceAfter() != 0) {
                             ttlCheckBuilder = ttlCheckBuilder.deregisterCriticalServiceAfter(String
                                     .format("%ss", this.serviceConfiguration.getDeregisterCriticalServiceAfter()));
                         }
@@ -117,7 +119,7 @@ public class ConsulRegistrator implements Runnable {
 
                         // exponential increase, limited by maxRetryDelay
                         currentRetryDelay *= 2;
-                        if(currentRetryDelay > serviceConfiguration.getMaxRetryDelay()) {
+                        if (currentRetryDelay > serviceConfiguration.getMaxRetryDelay()) {
                             currentRetryDelay = serviceConfiguration.getMaxRetryDelay();
                         }
                     }
@@ -132,7 +134,7 @@ public class ConsulRegistrator implements Runnable {
     }
 
     private boolean isRegistered() {
-        if(healthClient != null) {
+        if (healthClient != null) {
             List<ServiceHealth> serviceInstances;
             try {
                 serviceInstances = healthClient
@@ -147,7 +149,8 @@ public class ConsulRegistrator implements Runnable {
 
             for (ServiceHealth serviceHealth : serviceInstances) {
                 ConsulService consulService = ConsulService.getInstanceFromServiceHealth(serviceHealth);
-                if(consulService != null && consulService.getVersion().equals(this.serviceConfiguration.getVersion())) {
+                if (consulService != null && consulService.getVersion().equals(this.serviceConfiguration.getVersion()
+                )) {
                     registered = true;
                     break;
                 }

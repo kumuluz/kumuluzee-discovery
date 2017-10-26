@@ -21,11 +21,15 @@
 package com.kumuluz.ee.discovery.utils;
 
 /**
- * @author Jan Meznarič, Urban Malc
+ * Consul-specific util class.
+ *
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class ConsulUtils {
 
     public static String getConsulServiceKey(String serviceName, String environment) {
-        return environment + "/"  + serviceName;
+        return environment + "/" + serviceName;
     }
 }

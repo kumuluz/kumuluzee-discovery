@@ -34,9 +34,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
 /**
- * etcd utils
+ * Util class for etcd.
  *
  * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class Etcd2Utils {
     private static final Logger log = Logger.getLogger(Etcd2Utils.class.getName());

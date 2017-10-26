@@ -34,9 +34,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
 /**
- * Runnable for service registration and heartbeats
+ * Runnable for service registration and heartbeats.
  *
- * @author Jan Meznarič, Urban Malc
+ * @author Urban Malc
+ * @author Jan Meznaric
+ * @since 1.0.0
  */
 public class Etcd2Registrator implements Runnable {
     private static final Logger log = Logger.getLogger(Etcd2Registrator.class.getName());
