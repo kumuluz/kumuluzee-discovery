@@ -92,8 +92,7 @@ public class CommonUtils {
         return version;
     }
 
-    public static Optional<URL> pickServiceInstanceRoundRobin(List<URL> serviceInstances) {
-
+    public static Optional<Integer> pickServiceInstanceIndexRoundRobin(List<URL> serviceInstances) {
         if (!serviceInstances.isEmpty()) {
             int index = 0;
             if (serviceInstances.size() >= lastInstanceServedIndex + 2) {
@@ -101,9 +100,14 @@ public class CommonUtils {
             }
             lastInstanceServedIndex = index;
 
-            return Optional.of(serviceInstances.get(index));
+            return Optional.of(index);
         } else {
             return Optional.empty();
         }
+    }
+
+    public static Optional<URL> pickServiceInstanceRoundRobin(List<URL> serviceInstances) {
+
+        return pickServiceInstanceIndexRoundRobin(serviceInstances).map(serviceInstances::get);
     }
 }

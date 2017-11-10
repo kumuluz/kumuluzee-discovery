@@ -47,4 +47,6 @@ public @interface DiscoverService {
     @Nonbinding String version() default "*";
 
     @Nonbinding AccessType accessType() default AccessType.GATEWAY;
+
+    @Nonbinding boolean retryAllUrls() default true;
 }

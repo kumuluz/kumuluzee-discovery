@@ -25,6 +25,7 @@ import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.annotations.DiscoverService;
 import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.exceptions.ServiceNotFoundException;
+import com.kumuluz.ee.discovery.filters.RetryFilter;
 
 import javax.enterprise.context.RequestScoped;
 import javax.enterprise.inject.Produces;
@@ -35,6 +36,7 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -73,13 +75,21 @@ public class DiscoverServiceProducer {
     @DiscoverService
     public Optional<WebTarget> produceWebTargetOpt(InjectionPoint injectionPoint) {
 
-        Optional<URL> url = getUrl(injectionPoint);
-        if (url.isPresent()) {
-            Client client = ClientBuilder.newClient();
-            try {
-                return Optional.of(client.target(url.get().toURI()));
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
+        Optional<List<URL>> urls = getUrls(injectionPoint);
+        if (urls.isPresent()) {
+            Optional<Integer> nextUrlIndex = CommonUtils.pickServiceInstanceIndexRoundRobin(urls.get());
+            if (nextUrlIndex.isPresent()) {
+                Client client = ClientBuilder.newClient();
+
+                if (injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).retryAllUrls()) {
+                    RetryFilter retryFilter = new RetryFilter(urls.get(), nextUrlIndex.get());
+                    client.register(retryFilter);
+                }
+                try {
+                    return Optional.of(client.target(urls.get().get(nextUrlIndex.get()).toURI()));
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                }
             }
         }
 
@@ -121,6 +131,10 @@ public class DiscoverServiceProducer {
     }
 
     private Optional<URL> getUrl(InjectionPoint injectionPoint) {
+        return getUrls(injectionPoint).flatMap(CommonUtils::pickServiceInstanceRoundRobin);
+    }
+
+    private Optional<List<URL>> getUrls(InjectionPoint injectionPoint) {
 
         String serviceName = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).value();
         String environment = injectionPoint.getAnnotated().getAnnotation(DiscoverService.class).environment();
@@ -138,7 +152,7 @@ public class DiscoverServiceProducer {
         log.info("Initializing field for service: " + serviceName + " version: " + version + " environment: " +
                 environment);
 
-        return discoveryUtil.getServiceInstance(serviceName, version, environment, accessType);
+        return discoveryUtil.getServiceInstances(serviceName, version, environment, accessType);
 
     }
 
