@@ -43,6 +43,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
@@ -62,6 +63,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     private final ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
 
     private List<ConsulServiceConfiguration> registeredServices;
+    private Map<String, ScheduledFuture> registratorHandles;
 
     private Map<String, List<ConsulService>> serviceInstances;
     private Map<String, Set<String>> serviceVersions;
@@ -80,6 +82,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     public void init() {
 
         this.registeredServices = new LinkedList<>();
+        this.registratorHandles = new HashMap<>();
 
         this.serviceInstances = new HashMap<>();
         this.serviceVersions = new HashMap<>();
@@ -119,19 +122,22 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     public void register(String serviceName, String version, String environment, long ttl, long pingInterval,
                          boolean singleton, String baseUrl, String serviceId) {
 
-        String serviceProtocol = configurationUtil.get("kumuluzee.discovery.consul.protocol").orElse("http");
-
-        // TODO get protocol from URL
-
+        String serviceProtocol = null;
         Integer servicePort = null;
         String address = null;
         if (baseUrl != null) {
             try {
-                servicePort = new URL(baseUrl).getPort();
-                address = new URL(baseUrl).getHost();
+                URL baseUrlObj = new URL(baseUrl);
+                serviceProtocol = baseUrlObj.getProtocol();
+                servicePort = baseUrlObj.getPort();
+                address = baseUrlObj.getHost();
             } catch (MalformedURLException e) {
                 log.severe("Malformed URL base url. Cannot get service port or address.");
             }
+        }
+
+        if (serviceProtocol == null) {
+            serviceProtocol = configurationUtil.get("kumuluzee.discovery.consul.protocol").orElse("http");
         }
 
         if (servicePort == null) {
@@ -159,9 +165,10 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
         // register and schedule heartbeats
         ConsulRegistrator registrator = new ConsulRegistrator(this.agentClient, this.healthClient,
                 serviceConfiguration);
-        scheduler.scheduleWithFixedDelay(registrator, 0, pingInterval, TimeUnit.SECONDS);
+        ScheduledFuture handle = scheduler.scheduleWithFixedDelay(registrator, 0, pingInterval, TimeUnit.SECONDS);
 
         this.registeredServices.add(serviceConfiguration);
+        this.registratorHandles.put(serviceId, handle);
     }
 
     @Override
@@ -174,6 +181,11 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
     @Override
     public void deregister() {
+
+        for (ScheduledFuture handle : this.registratorHandles.values()) {
+            handle.cancel(true);
+        }
+
         if (agentClient != null) {
             for (ConsulServiceConfiguration serviceConfiguration : registeredServices) {
                 log.info("Deregistering service with Consul. Service name: " +
@@ -183,8 +195,6 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                 } catch (ConsulException e) {
                     log.severe("Error deregistering service with Consul: " + e.getLocalizedMessage());
                 }
-
-                // TODO stop handler
             }
         }
     }
@@ -429,12 +439,16 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     public void deregister(String serviceId) {
 
         log.info("Deregistering service with Consul. Service id: " + serviceId);
+
+        ScheduledFuture handle = this.registratorHandles.remove(serviceId);
+        if (handle != null) {
+            handle.cancel(true);
+        }
+
         try {
             agentClient.deregister(serviceId);
         } catch (ConsulException e) {
             log.severe("Error deregistering service with Consul: " + e.getLocalizedMessage());
         }
-
-        // TODO stop handler
     }
 }

@@ -104,25 +104,20 @@ public class ConsulRegistrator implements Runnable {
                         }
                         Registration.RegCheck ttlCheck = ttlCheckBuilder.build();
 
+                        ImmutableRegistration.Builder registrationBuilder = ImmutableRegistration.builder()
+                                .port(this.serviceConfiguration.getServicePort())
+                                .check(ttlCheck)
+                                .name(this.serviceConfiguration.getServiceConsulKey())
+                                .id(this.serviceConfiguration.getServiceId())
+                                .addTags(this.serviceConfiguration.getServiceProtocol(),
+                                        ConsulService.TAG_VERSION_PREFIX + this.serviceConfiguration.getVersion());
+
                         if (this.serviceConfiguration.getAddress() != null) {
-
-                            Registration registration = ImmutableRegistration.builder().address(this
-                                    .serviceConfiguration.getAddress()).port(this.serviceConfiguration.getServicePort())
-                                    .check(ttlCheck).name(this.serviceConfiguration.getServiceConsulKey()).id(this
-                                            .serviceConfiguration.getServiceId()).addTags(this.serviceConfiguration
-                                                    .getServiceProtocol(),
-                                            ConsulService.TAG_VERSION_PREFIX + this.serviceConfiguration.getVersion())
-                                    .build();
-
-                            agentClient.register(registration);
-                        }else {
-
-                            agentClient.register(this.serviceConfiguration.getServicePort(), ttlCheck,
-                                    this.serviceConfiguration.getServiceConsulKey(),
-                                    this.serviceConfiguration.getServiceId(),
-                                    this.serviceConfiguration.getServiceProtocol(),
-                                    ConsulService.TAG_VERSION_PREFIX + this.serviceConfiguration.getVersion());
+                            registrationBuilder.address(this.serviceConfiguration.getAddress());
                         }
+
+                        agentClient.register(registrationBuilder.build());
+
                         this.isRegistered = true;
                         this.currentRetryDelay = serviceConfiguration.getStartRetryDelay();
                     } catch (ConsulException e) {
