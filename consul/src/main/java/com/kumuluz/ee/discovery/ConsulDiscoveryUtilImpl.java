@@ -200,6 +200,23 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     }
 
     @Override
+    public void deregister(String serviceId) {
+
+        log.info("Deregistering service with Consul. Service id: " + serviceId);
+
+        ScheduledFuture handle = this.registratorHandles.remove(serviceId);
+        if (handle != null) {
+            handle.cancel(true);
+        }
+
+        try {
+            agentClient.deregister(serviceId);
+        } catch (ConsulException e) {
+            log.severe("Error deregistering service with Consul: " + e.getLocalizedMessage());
+        }
+    }
+
+    @Override
     public Optional<List<URL>> getServiceInstances(String serviceName, String version, String environment,
                                                    AccessType accessType) {
         String consulServiceKey = ConsulUtils.getConsulServiceKey(serviceName, environment);
@@ -432,23 +449,6 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                     log.severe("Error deregistering service instance with Consul: " + e.getLocalizedMessage());
                 }
             }
-        }
-    }
-
-    @Override
-    public void deregister(String serviceId) {
-
-        log.info("Deregistering service with Consul. Service id: " + serviceId);
-
-        ScheduledFuture handle = this.registratorHandles.remove(serviceId);
-        if (handle != null) {
-            handle.cancel(true);
-        }
-
-        try {
-            agentClient.deregister(serviceId);
-        } catch (ConsulException e) {
-            log.severe("Error deregistering service with Consul: " + e.getLocalizedMessage());
         }
     }
 }

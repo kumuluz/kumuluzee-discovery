@@ -308,6 +308,10 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     @Override
     public void deregister() {
 
+        for (ScheduledFuture handle : this.registratorHandles.values()) {
+            handle.cancel(true);
+        }
+
         if (etcd != null) {
             for (Etcd2ServiceConfiguration serviceConfiguration : this.registeredServices) {
                 log.info("Deregistering service with etcd. Service name: " + serviceConfiguration.getServiceName() +
@@ -330,9 +334,31 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 log.severe("Could not close etcd extension. Exception: " + e.getMessage());
             }
         }
+    }
 
-        for (ScheduledFuture handle : this.registratorHandles.values()) {
+    @Override
+    public void deregister(String serviceId) {
+
+        log.info("Deregistering service with etcd. Service id: " + serviceId);
+
+        ScheduledFuture handle = this.registratorHandles.remove(serviceId);
+        if (handle != null) {
             handle.cancel(true);
+        }
+
+        if (etcd != null) {
+
+            for (Etcd2ServiceConfiguration service : this.registeredServices) {
+                if (service.getServiceInstanceKey().endsWith(serviceId)) {
+                    try {
+                        etcd.deleteDir(service.getServiceInstanceKey()).recursive()
+                                .setRetryPolicy(new RetryOnce(0))
+                                .send().get();
+                    } catch (IOException | EtcdException | EtcdAuthenticationException | TimeoutException e) {
+                        log.severe("Cannot deregister service. Error: " + e.toString());
+                    }
+                }
+            }
         }
     }
 
@@ -608,32 +634,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                             node.getValue().equals(url.toString())) {
                         log.info("Disabling service instance: " + instance.getKey());
                         putEtcdKey(instance.getKey() + "/status", "disabled");
-                    }
-                }
-            }
-        }
-    }
-
-    @Override
-    public void deregister(String serviceId) {
-
-        ScheduledFuture handle = this.registratorHandles.remove(serviceId);
-        if (handle != null) {
-            handle.cancel(true);
-        }
-
-        if (etcd != null) {
-
-            log.info("Deregistering service with etcd. Service id: " + serviceId);
-
-            for (Etcd2ServiceConfiguration service : this.registeredServices) {
-                if (service.getServiceInstanceKey().endsWith(serviceId)) {
-                    try {
-                        etcd.deleteDir(service.getServiceInstanceKey()).recursive()
-                                .setRetryPolicy(new RetryOnce(0))
-                                .send().get();
-                    } catch (IOException | EtcdException | EtcdAuthenticationException | TimeoutException e) {
-                        log.severe("Cannot deregister service. Error: " + e.toString());
                     }
                 }
             }
