@@ -117,17 +117,32 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
     @Override
     public void register(String serviceName, String version, String environment, long ttl, long pingInterval,
-                         boolean singleton) {
+                         boolean singleton, String baseUrl, String serviceId) {
 
         String serviceProtocol = configurationUtil.get("kumuluzee.discovery.consul.protocol").orElse("http");
 
-        // get service port
-        Integer servicePort = EeConfig.getInstance().getServer().getHttp().getPort();
-        if (servicePort == null) {
-            servicePort = EeConfig.getInstance().getServer().getHttps().getPort();
+        // TODO get protocol from URL
+
+        Integer servicePort = null;
+        String address = null;
+        if (baseUrl != null) {
+            try {
+                servicePort = new URL(baseUrl).getPort();
+                address = new URL(baseUrl).getHost();
+            } catch (MalformedURLException e) {
+                log.severe("Malformed URL base url. Cannot get service port or address.");
+            }
         }
+
         if (servicePort == null) {
-            servicePort = configurationUtil.getInteger("port").orElse(8080);
+            // get service port
+            servicePort = EeConfig.getInstance().getServer().getHttp().getPort();
+            if (servicePort == null) {
+                servicePort = EeConfig.getInstance().getServer().getHttps().getPort();
+            }
+            if (servicePort == null) {
+                servicePort = configurationUtil.getInteger("port").orElse(8080);
+            }
         }
 
         // get retry delays
@@ -138,8 +153,8 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                 .getInteger("kumuluzee.config.consul.deregister-critical-service-after-s").orElse(60);
 
         ConsulServiceConfiguration serviceConfiguration = new ConsulServiceConfiguration(serviceName, environment,
-                version, serviceProtocol, servicePort, ttl, singleton, startRetryDelay, maxRetryDelay,
-                deregisterCriticalServiceAfter);
+                version, serviceProtocol, address, servicePort, ttl, singleton, startRetryDelay, maxRetryDelay,
+                deregisterCriticalServiceAfter, serviceId);
 
         // register and schedule heartbeats
         ConsulRegistrator registrator = new ConsulRegistrator(this.agentClient, this.healthClient,
@@ -147,6 +162,14 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
         scheduler.scheduleWithFixedDelay(registrator, 0, pingInterval, TimeUnit.SECONDS);
 
         this.registeredServices.add(serviceConfiguration);
+    }
+
+    @Override
+    public void register(String serviceName, String version, String environment, long ttl, long pingInterval, boolean
+            singleton) {
+
+        register(serviceName, version, environment, ttl, pingInterval, singleton, null, null);
+
     }
 
     @Override
@@ -160,6 +183,8 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                 } catch (ConsulException e) {
                     log.severe("Error deregistering service with Consul: " + e.getLocalizedMessage());
                 }
+
+                // TODO stop handler
             }
         }
     }
@@ -398,5 +423,18 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
                 }
             }
         }
+    }
+
+    @Override
+    public void deregister(String serviceId) {
+
+        log.info("Deregistering service with Consul. Service id: " + serviceId);
+        try {
+            agentClient.deregister(serviceId);
+        } catch (ConsulException e) {
+            log.severe("Error deregistering service with Consul: " + e.getLocalizedMessage());
+        }
+
+        // TODO stop handler
     }
 }

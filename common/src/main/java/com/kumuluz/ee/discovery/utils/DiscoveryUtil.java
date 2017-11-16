@@ -37,6 +37,9 @@ public interface DiscoveryUtil {
     void register(String serviceName, String version, String environment, long ttl, long
             pingInterval, boolean singleton);
 
+    void register(String serviceName, String version, String environment, long ttl, long
+            pingInterval, boolean singleton, String baseUrl, String serviceId);
+
     void deregister();
 
     Optional<List<URL>> getServiceInstances(String serviceName, String version, String environment,
@@ -66,4 +69,6 @@ public interface DiscoveryUtil {
     Optional<List<String>> getServiceVersions(String serviceName, String environment);
 
     void disableServiceInstance(String serviceName, String version, String environment, URL url);
+
+    void deregister(String instanceId);
 }

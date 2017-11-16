@@ -34,6 +34,7 @@ public class ConsulServiceConfiguration {
     private String version;
     private String serviceId;
     private String serviceProtocol;
+    private String address;
     private int servicePort;
     private long ttl;
     private boolean singleton;
@@ -43,13 +44,19 @@ public class ConsulServiceConfiguration {
     private int deregisterCriticalServiceAfter;
 
     public ConsulServiceConfiguration(String serviceName, String environment, String version, String serviceProtocol,
-                                      int servicePort, long ttl, boolean singleton, int startRetryDelay,
-                                      int maxRetryDelay, int deregisterCriticalServiceAfter) {
+                                      String address, int servicePort, long ttl, boolean singleton, int startRetryDelay,
+                                      int maxRetryDelay, int deregisterCriticalServiceAfter, String serviceId) {
         this.serviceName = serviceName;
         this.environment = environment;
         this.version = version;
-        this.serviceId = serviceName + "-" + EeRuntime.getInstance().getInstanceId();
+        if (serviceId == null) {
+            this.serviceId = serviceName + "-" + EeRuntime.getInstance().getInstanceId();
+        } else {
+            this.serviceId = serviceId;
+        }
         this.serviceProtocol = serviceProtocol;
+        this.address = address;
+
         this.servicePort = servicePort;
         this.ttl = ttl;
         this.singleton = singleton;
@@ -81,6 +88,10 @@ public class ConsulServiceConfiguration {
 
     public String getServiceProtocol() {
         return serviceProtocol;
+    }
+
+    public String getAddress() {
+        return address;
     }
 
     public int getServicePort() {

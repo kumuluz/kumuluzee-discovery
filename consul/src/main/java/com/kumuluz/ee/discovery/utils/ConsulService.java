@@ -83,9 +83,15 @@ public class ConsulService {
 
     private static URL serviceHealthToURL(ServiceHealth serviceHealth) {
 
+        String address = serviceHealth.getService().getAddress();
+
+        if (address == null || address.isEmpty()) {
+            address = serviceHealth.getNode().getAddress();
+        }
+
         try {
             return new URL(((serviceHealth.getService().getTags().contains(TAG_HTTPS)) ? "https" : "http")
-                    + "://" + serviceHealth.getNode().getAddress() + ":" + serviceHealth.getService().getPort());
+                    + "://" + address + ":" + serviceHealth.getService().getPort()); //
         } catch (MalformedURLException e) {
             log.severe("Malformed URL when translating serviceHealth to URL: " + e.getLocalizedMessage());
         }
