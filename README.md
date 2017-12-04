@@ -197,6 +197,31 @@ public class TestResource {
 }
 ```
 
+If the service is not found, injection throws `ServiceNotFoundException`. If this behavior is not desired, injection
+into `Optional` types can be used:
+
+```java
+@RequestScoped
+@Path("/")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class TestResource {
+
+    @Inject
+    @DiscoverService(value = "my-service", environment = "test", version = "1.0.0")
+    private Optional<URL> url;
+
+    @Inject
+    @DiscoverService(value = "my-service", environment = "test", version = "1.0.0")
+    private Optional<String> urlString;
+
+    @Inject
+    @DiscoverService(value = "my-service", environment = "test", version = "1.0.0")
+    private Optional<WebTarget> webTarget;
+
+}
+```
+
 **<a name="access-types"></a>Access Types**
 
 Service discovery supports two access types:
@@ -228,6 +253,47 @@ For more information see [NPM semver documentation](http://docs.npmjs.com/misc/s
 Etcd implementation improves resilience by saving the information of the last present service, before it gets deleted.
 This means, that etcd discovery extension will return the URL of the last-known service, if no services are present in
 the registry. When discovering the last-known service a warning is logged.
+
+### Executing service discovery only when needed
+
+When injecting a service using the `@DiscoverService` annotation, the service is discovered every time the bean is
+created, even if we call a method that does not require injected service. This usually does not present a problem,
+since blocking request to the registry is needed only when the first discovery of the service is performed.
+Every following discovery of the service is performed on the internal buffer, which gets updated in the background.
+
+If this still presents a problem, you can avoid service discovery when not needed by either injecting `DiscoveryUtil`
+and performing service discovery programmatically, or by using the CDI Provider mechanism as shown below:
+
+```java
+@RequestScoped
+@Path("/")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class DiscoverResources extends BaseResource {
+
+    @Inject
+    @DiscoverService(value = "my-service", environment = "dev", version = "1.0.0")
+    Provider<Optional<WebTarget>> targetProvider;
+
+    @GET
+    @Path("discovery")
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response discoveryInMethod() {
+        Optional<WebTarget> target = targetProvider.get();
+        if (target.isPresent()) {
+            return Response.ok(target.get().getUri().toString()).build();
+        } else {
+            return Response.noContent().build();
+        }
+    }
+
+    @GET
+    @Path("nonDiscovery")
+    public Response nonDiscoveryMethod() {
+        return Response.ok("{}").build();
+    }
+}
+```
 
 ### Cluster, cloud-native platforms and Kubernetes
 
