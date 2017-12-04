@@ -641,6 +641,15 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
                         if (node.getValue() == null) {
                             log.info("Service instance deleted: " + node.getKey());
+                            if (this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                    .size() == 1) {
+                                // if removing last service, save it to separate buffer
+                                // this service will be returned, if no other services are present
+                                this.lastKnownServices.put(serviceName + "_" + version + "_" + environment,
+                                        this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
+                                                .get(node.getKey()));
+                                this.lastKnownVersions.put(serviceName + "_" + environment, version);
+                            }
                             this.serviceInstances.get(serviceName + "_" + version + "_" + environment).remove(node
                                     .getKey());
                         } else {
