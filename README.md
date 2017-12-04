@@ -102,6 +102,23 @@ Version is stored in service tag with following format: `version='version'`
 
 If the service uses https protocol, tag `https` is added.
 
+### Retry delays
+
+Etcd and Consul implementations support retry delays on watch connection errors. Since they use increasing exponential
+delay, two parameters need to be specified:
+
+- `kumuluzee.discovery.start-retry-delay-ms` - Sets the retry delay duration in ms on first error. Default value: 500
+- `kumuluzee.discovery.max-retry-delay-ms` - Sets the maximum delay duration in ms on consecutive errors -
+  Default value: 900000 (15 min)
+
+Etcd implementation additionally supports fine-grained retry configuration by using the following configuration keys:
+- `kumuluzee.discovery.etcd.initial-retry-count` - Specifies how many retries are executed when performing the first
+  request on etcd. This mainly affects the time before the first performed discovery returns no instances if the etcd
+  is down. Default value: 1.
+- `kumuluzee.discovery.resilience` - If `false`, retries are not executed on any etcd request and 
+  `EtcdNotAvailableException` is thrown on timeouts. If `true`, retries are executed as configured and timeouts are
+  logged, but no exceptions are thrown. Default value: `true`.
+
 ### Service registration
 
 Automatic service registration is enabled with the annotation `@RegisterService` on the REST application class (that extends 
@@ -205,6 +222,12 @@ discovered using a NPM range. Some examples:
 
 
 For more information see [NPM semver documentation](http://docs.npmjs.com/misc/semver).
+
+### Using the last-known service
+
+Etcd implementation improves resilience by saving the information of the last present service, before it gets deleted.
+This means, that etcd discovery extension will return the URL of the last-known service, if no services are present in
+the registry. When discovering the last-known service a warning is logged.
 
 ### Cluster, cloud-native platforms and Kubernetes
 
