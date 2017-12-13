@@ -17,7 +17,7 @@
  *  out of or in connection with the software or the use or other dealings in the
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
-*/
+ */
 package com.kumuluz.ee.discovery.utils;
 
 import com.kumuluz.ee.common.config.EeConfig;
@@ -26,7 +26,7 @@ import com.kumuluz.ee.discovery.annotations.DiscoverService;
 import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.exceptions.ServiceNotFoundException;
 
-import javax.enterprise.context.RequestScoped;
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.inject.Inject;
@@ -44,7 +44,7 @@ import java.util.logging.Logger;
  * @author Jan Meznaric
  * @since 1.0.0
  */
-@RequestScoped
+@ApplicationScoped
 public class DiscoverServiceProducer {
 
     private static final Logger log = Logger.getLogger(DiscoverServiceProducer.class.getName());
