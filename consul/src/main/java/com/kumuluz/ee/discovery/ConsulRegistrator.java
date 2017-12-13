@@ -17,7 +17,7 @@
  *  out of or in connection with the software or the use or other dealings in the
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
-*/
+ */
 package com.kumuluz.ee.discovery;
 
 import com.kumuluz.ee.discovery.utils.ConsulService;
@@ -73,7 +73,7 @@ public class ConsulRegistrator implements Runnable {
     }
 
     private void sendHeartbeat() {
-        log.info("Sending heartbeat.");
+        log.fine("Sending heartbeat.");
         try {
             agentClient.pass(this.serviceConfiguration.getServiceId());
         } catch (NotRegisteredException e) {

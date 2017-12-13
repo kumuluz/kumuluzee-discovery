@@ -17,7 +17,7 @@
  *  out of or in connection with the software or the use or other dealings in the
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
-*/
+ */
 package com.kumuluz.ee.discovery;
 
 import com.kumuluz.ee.discovery.exceptions.EtcdNotAvailableException;
@@ -60,7 +60,7 @@ public class Etcd2Registrator implements Runnable {
             this.registerToEtcd();
         } else {
 
-            log.info("Sending heartbeat. " + this.serviceConfig.getServiceInstanceKey());
+            log.fine("Sending heartbeat. " + this.serviceConfig.getServiceInstanceKey());
 
             try {
                 this.etcd.putDir(this.serviceConfig.getServiceInstanceKey()).prevExist(true)
