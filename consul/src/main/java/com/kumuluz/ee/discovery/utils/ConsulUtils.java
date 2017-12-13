@@ -30,6 +30,6 @@ package com.kumuluz.ee.discovery.utils;
 public class ConsulUtils {
 
     public static String getConsulServiceKey(String serviceName, String environment) {
-        return environment + "/" + serviceName;
+        return environment + "-" + serviceName;
     }
 }

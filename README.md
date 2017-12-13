@@ -96,7 +96,7 @@ services. To read more about this parameter, see Consul documentation: https://w
 To alter the value of this parameter, set configuration key `kumuluzee.config.consul.deregister-critical-service-after-s`
 appropriately. Default value is 60 (1 min).
 
-Services in Consul are registered with the following name: `'environment'/'serviceName'`
+Services in Consul are registered with the following name: `'environment'-'serviceName'`
 
 Version is stored in service tag with following format: `version='version'`
 
