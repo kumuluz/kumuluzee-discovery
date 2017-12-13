@@ -43,7 +43,8 @@ public class Etcd2ServiceConfiguration {
     private String serviceKeyUrl;
 
     public Etcd2ServiceConfiguration(String serviceName, String serviceVersion, String environment, int ttl,
-                                     boolean singleton, String baseUrl, String containerUrl, String clusterId) {
+                                     boolean singleton, String baseUrl, String containerUrl, String clusterId, String
+                                             serviceId) {
         this.serviceName = serviceName;
         this.serviceVersion = serviceVersion;
         this.environment = environment;
@@ -53,8 +54,13 @@ public class Etcd2ServiceConfiguration {
         this.containerUrl = containerUrl;
         this.clusterId = clusterId;
 
-        this.serviceInstanceKey = Etcd2Utils.getServiceKeyInstance(this.environment, this.serviceName,
-                this.serviceVersion, EeRuntime.getInstance().getInstanceId());
+        if (serviceId == null) {
+            this.serviceInstanceKey = Etcd2Utils.getServiceKeyInstance(this.environment, this.serviceName,
+                    this.serviceVersion, EeRuntime.getInstance().getInstanceId());
+        } else {
+            this.serviceInstanceKey = Etcd2Utils.getServiceKeyInstance(this.environment, this.serviceName,
+                    this.serviceVersion, serviceId);
+        }
 
         this.serviceKeyUrl = serviceInstanceKey + "/url/";
     }

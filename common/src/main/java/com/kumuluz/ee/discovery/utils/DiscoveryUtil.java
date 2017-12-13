@@ -34,10 +34,45 @@ import java.util.Optional;
  */
 public interface DiscoveryUtil {
 
+    /**
+     * Registers service instance.
+     *
+     * @param serviceName service name
+     * @param version service version
+     * @param environment service environment
+     * @param ttl instance TTL
+     * @param pingInterval refresh interval
+     * @param singleton is service singleton
+     */
     void register(String serviceName, String version, String environment, long ttl, long
             pingInterval, boolean singleton);
 
+    /**
+     * Registers service instance
+     *
+     * @param serviceName service name
+     * @param version service version
+     * @param environment service environment
+     * @param ttl instance TTL
+     * @param pingInterval refresh interval
+     * @param singleton is service singleton
+     * @param baseUrl base URL of the instance
+     * @param serviceId unique service ID
+     */
+    void register(String serviceName, String version, String environment, long ttl, long
+            pingInterval, boolean singleton, String baseUrl, String serviceId);
+
+    /**
+     * Deregisters all instances, registered with the register(...) methods.
+     */
     void deregister();
+
+    /**
+     * Deregisters instance with particular instance ID.
+     *
+     * @param instanceId instance ID
+     */
+    void deregister(String instanceId);
 
     Optional<List<URL>> getServiceInstances(String serviceName, String version, String environment,
                                             AccessType accessType);

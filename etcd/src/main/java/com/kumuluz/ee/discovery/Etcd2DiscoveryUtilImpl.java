@@ -68,7 +68,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     private final ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
 
     private List<Etcd2ServiceConfiguration> registeredServices;
-    private List<ScheduledFuture> registratorHandles;
+    private Map<String, ScheduledFuture> registratorHandles;
 
     private Map<String, Map<String, Etcd2Service>> serviceInstances;
     private Map<String, List<String>> serviceVersions;
@@ -88,7 +88,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     public void init() {
 
         this.registeredServices = new LinkedList<>();
-        this.registratorHandles = new LinkedList<>();
+        this.registratorHandles = new HashMap<>();
 
         this.serviceInstances = new HashMap<>();
         this.serviceVersions = new HashMap<>();
@@ -198,23 +198,26 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
     @Override
     public void register(String serviceName, String version, String environment, long ttl,
-                         long pingInterval, boolean singleton) {
+                         long pingInterval, boolean singleton, String baseUrl, String serviceId) {
 
         EeConfig eeConfig = EeConfig.getInstance();
 
-        // get service URL
-        String baseUrl = eeConfig.getServer().getBaseUrl();
-        if (baseUrl == null || baseUrl.isEmpty()) {
-            baseUrl = configurationUtil.get("kumuluzee.base-url").orElse(null);
-            if (baseUrl != null) {
-                try {
-                    baseUrl = new URL(baseUrl).toString();
-                } catch (MalformedURLException e) {
-                    log.severe("Cannot parse kumuluzee.base-url. Exception: " + e.toString());
-                    baseUrl = null;
+        if (baseUrl == null) {
+            // get service URL
+            baseUrl = eeConfig.getServer().getBaseUrl();
+            if (baseUrl == null || baseUrl.isEmpty()) {
+                baseUrl = configurationUtil.get("kumuluzee.base-url").orElse(null);
+                if (baseUrl != null) {
+                    try {
+                        baseUrl = new URL(baseUrl).toString();
+                    } catch (MalformedURLException e) {
+                        log.severe("Cannot parse kumuluzee.base-url. Exception: " + e.toString());
+                        baseUrl = null;
+                    }
                 }
             }
         }
+
         String containerUrl = configurationUtil.get("kumuluzee.container-url").orElse(null);
         if (containerUrl != null) {
             try {
@@ -285,17 +288,29 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         }
 
         Etcd2ServiceConfiguration serviceConfiguration = new Etcd2ServiceConfiguration(serviceName, version,
-                environment, (int) ttl, singleton, baseUrl, containerUrl, this.clusterId);
+                environment, (int) ttl, singleton, baseUrl, containerUrl, this.clusterId, serviceId);
 
         this.registeredServices.add(serviceConfiguration);
 
         Etcd2Registrator registrator = new Etcd2Registrator(etcd, serviceConfiguration, resilience);
         ScheduledFuture handle = scheduler.scheduleWithFixedDelay(registrator, 0, pingInterval, TimeUnit.SECONDS);
-        this.registratorHandles.add(handle);
+        this.registratorHandles.put(serviceId, handle);
+    }
+
+    @Override
+    public void register(String serviceName, String version, String environment, long ttl, long pingInterval, boolean
+            singleton) {
+
+        register(serviceName, version, environment, ttl, pingInterval, singleton, null, null);
+
     }
 
     @Override
     public void deregister() {
+
+        for (ScheduledFuture handle : this.registratorHandles.values()) {
+            handle.cancel(true);
+        }
 
         if (etcd != null) {
             for (Etcd2ServiceConfiguration serviceConfiguration : this.registeredServices) {
@@ -303,7 +318,9 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                         " Service ID: " + serviceConfiguration.getServiceKeyUrl());
 
                 try {
-                    etcd.delete(serviceConfiguration.getServiceKeyUrl()).setRetryPolicy(new RetryOnce(0)).send().get();
+                    etcd.deleteDir(serviceConfiguration.getServiceInstanceKey()).recursive()
+                            .setRetryPolicy(new RetryOnce(0))
+                            .send().get();
                 } catch (IOException | EtcdException | EtcdAuthenticationException | TimeoutException e) {
                     log.severe("Cannot deregister service. Error: " + e.toString());
                 }
@@ -317,9 +334,31 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 log.severe("Could not close etcd extension. Exception: " + e.getMessage());
             }
         }
+    }
 
-        for (ScheduledFuture handle : this.registratorHandles) {
+    @Override
+    public void deregister(String serviceId) {
+
+        log.info("Deregistering service with etcd. Service id: " + serviceId);
+
+        ScheduledFuture handle = this.registratorHandles.remove(serviceId);
+        if (handle != null) {
             handle.cancel(true);
+        }
+
+        if (etcd != null) {
+
+            for (Etcd2ServiceConfiguration service : this.registeredServices) {
+                if (service.getServiceInstanceKey().endsWith(serviceId)) {
+                    try {
+                        etcd.deleteDir(service.getServiceInstanceKey()).recursive()
+                                .setRetryPolicy(new RetryOnce(0))
+                                .send().get();
+                    } catch (IOException | EtcdException | EtcdAuthenticationException | TimeoutException e) {
+                        log.severe("Cannot deregister service. Error: " + e.toString());
+                    }
+                }
+            }
         }
     }
 

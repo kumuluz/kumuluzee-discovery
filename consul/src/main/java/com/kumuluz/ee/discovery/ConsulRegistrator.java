@@ -27,6 +27,7 @@ import com.orbitz.consul.ConsulException;
 import com.orbitz.consul.HealthClient;
 import com.orbitz.consul.NotRegisteredException;
 import com.orbitz.consul.model.agent.ImmutableRegCheck;
+import com.orbitz.consul.model.agent.ImmutableRegistration;
 import com.orbitz.consul.model.agent.Registration;
 import com.orbitz.consul.model.health.ServiceHealth;
 
@@ -103,11 +104,20 @@ public class ConsulRegistrator implements Runnable {
                         }
                         Registration.RegCheck ttlCheck = ttlCheckBuilder.build();
 
-                        agentClient.register(this.serviceConfiguration.getServicePort(), ttlCheck,
-                                this.serviceConfiguration.getServiceConsulKey(),
-                                this.serviceConfiguration.getServiceId(),
-                                this.serviceConfiguration.getServiceProtocol(),
-                                ConsulService.TAG_VERSION_PREFIX + this.serviceConfiguration.getVersion());
+                        ImmutableRegistration.Builder registrationBuilder = ImmutableRegistration.builder()
+                                .port(this.serviceConfiguration.getServicePort())
+                                .check(ttlCheck)
+                                .name(this.serviceConfiguration.getServiceConsulKey())
+                                .id(this.serviceConfiguration.getServiceId())
+                                .addTags(this.serviceConfiguration.getServiceProtocol(),
+                                        ConsulService.TAG_VERSION_PREFIX + this.serviceConfiguration.getVersion());
+
+                        if (this.serviceConfiguration.getAddress() != null) {
+                            registrationBuilder.address(this.serviceConfiguration.getAddress());
+                        }
+
+                        agentClient.register(registrationBuilder.build());
+
                         this.isRegistered = true;
                         this.currentRetryDelay = serviceConfiguration.getStartRetryDelay();
                     } catch (ConsulException e) {
