@@ -1,9 +1,9 @@
 # KumuluzEE Discovery
 [![Build Status](https://img.shields.io/travis/kumuluz/kumuluzee-discovery/master.svg?style=flat)](https://travis-ci.org/kumuluz/kumuluzee-discovery)
 
-> Service discovery extension for the KumuluzEE microservice framework. Service registration, service discovery and client side load balancing with full support for Docker and Kubernetes cluster.
+> Service discovery project for the KumuluzEE microservice framework. Service registration, service discovery and client side load balancing with full support for Docker and Kubernetes cluster.
 
-KumuluzEE Discovery is a service discovery extension for the KumuluzEE microservice framework. It provides support 
+KumuluzEE Discovery is a service discovery project for the KumuluzEE microservice framework. It provides support 
 for service registration, service discovery and client side load balancing.
 
 KumuluzEE Discovery provides full support for microservices packed as Docker containers. It also provides full support 
@@ -12,7 +12,7 @@ for executing microservices in clusters and cloud-native platforms with full sup
 KumuluzEE Discovery has been designed to support modularity with pluggable service discovery frameworks. Currently, 
 etcd and Consul are supported. In the future, other discovery frameworks will be supported too (contributions are welcome).
 
-The extension supports KumuluzEE version 2.4.0 or higher.
+Project supports KumuluzEE version 2.4.0 or higher.
 
 ## Usage
 
@@ -251,7 +251,7 @@ For more information see [NPM semver documentation](http://docs.npmjs.com/misc/s
 ### Using the last-known service
 
 Etcd implementation improves resilience by saving the information of the last present service, before it gets deleted.
-This means, that etcd discovery extension will return the URL of the last-known service, if no services are present in
+This means, that etcd-based discovery will return the URL of the last-known service, if no services are present in
 the registry. When discovering the last-known service a warning is logged.
 
 ### Executing service discovery only when needed
