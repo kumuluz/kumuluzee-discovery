@@ -20,8 +20,6 @@
 */
 package com.kumuluz.ee.discovery.utils;
 
-import com.kumuluz.ee.common.runtime.EeRuntime;
-
 /**
  * Service configuration data.
  *
@@ -53,14 +51,7 @@ public class Etcd2ServiceConfiguration {
         this.baseUrl = baseUrl;
         this.containerUrl = containerUrl;
         this.clusterId = clusterId;
-
-        if (serviceId == null) {
-            this.serviceInstanceKey = Etcd2Utils.getServiceKeyInstance(this.environment, this.serviceName,
-                    this.serviceVersion, EeRuntime.getInstance().getInstanceId());
-        } else {
-            this.serviceInstanceKey = Etcd2Utils.getServiceKeyInstance(this.environment, this.serviceName,
-                    this.serviceVersion, serviceId);
-        }
+        this.serviceInstanceKey = Etcd2Utils.getServiceKeyInstance(this.environment, this.serviceName, this.serviceVersion, serviceId);
 
         this.serviceKeyUrl = serviceInstanceKey + "/url/";
     }

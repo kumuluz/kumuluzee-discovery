@@ -20,8 +20,6 @@
 */
 package com.kumuluz.ee.discovery;
 
-import com.kumuluz.ee.common.config.EeConfig;
-import com.kumuluz.ee.configuration.utils.ConfigurationUtil;
 import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.exceptions.EtcdNotAvailableException;
 import com.kumuluz.ee.discovery.utils.*;
@@ -40,8 +38,6 @@ import mousio.etcd4j.responses.EtcdErrorCode;
 import mousio.etcd4j.responses.EtcdException;
 import mousio.etcd4j.responses.EtcdKeysResponse;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
 import javax.net.ssl.SSLException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -54,18 +50,16 @@ import java.util.concurrent.*;
 import java.util.logging.Logger;
 
 /**
- * Implementation of a DiscoveryUtil interface.
+ * Implementation of a DiscoveryCore interface.
  *
  * @author Urban Malc
  * @author Jan Meznaric
+ * @author Jernej Cernelc
  * @since 1.0.0
  */
-@ApplicationScoped
-public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
-
-    private static final Logger log = Logger.getLogger(Etcd2DiscoveryUtilImpl.class.getName());
+public class Etcd2DiscoveryCoreImpl implements DiscoveryCore {
+    private static final Logger log = Logger.getLogger(Etcd2DiscoveryCoreImpl.class.getName());
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-    private final ConfigurationUtil configurationUtil = ConfigurationUtil.getInstance();
 
     private List<Etcd2ServiceConfiguration> registeredServices;
     private Map<String, ScheduledFuture> registratorHandles;
@@ -84,8 +78,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
     private boolean resilience;
 
-    @PostConstruct
-    public void init() {
+    public void init(String etcdUsername, String etcdPassword, String cert, String etcdUrls, Boolean resilience, int startRetryDelay, int maxRetryDelay, int initialRetryCount, String clusterId) {
 
         this.registeredServices = new LinkedList<>();
         this.registratorHandles = new HashMap<>();
@@ -96,12 +89,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         this.lastKnownServices = new HashMap<>();
         this.lastKnownVersions = new HashMap<>();
 
-        // get user credentials
-        String etcdUsername = configurationUtil.get("kumuluzee.discovery.etcd.username").orElse(null);
-        String etcdPassword = configurationUtil.get("kumuluzee.discovery.etcd.password").orElse(null);
-
-        // get CA certificate
-        String cert = configurationUtil.get("kumuluzee.discovery.etcd.ca").orElse(null);
         SslContext sslContext = null;
         if (cert != null) {
 
@@ -135,8 +122,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             etcdSecurityContext = new EtcdSecurityContext(sslContext);
         }
 
-        // get etcd host names
-        String etcdUrls = configurationUtil.get("kumuluzee.discovery.etcd.hosts").orElse(null);
         if (etcdUrls != null && !etcdUrls.isEmpty()) {
 
             String[] splittedEtcdUrls = etcdUrls.split(",");
@@ -159,10 +144,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
             }
 
-            this.resilience = configurationUtil.getBoolean("kumuluzee.discovery.resilience").orElse(true);
-
-            int startRetryDelay = InitializationUtils.getStartRetryDelayMs(configurationUtil, "etcd");
-            int maxRetryDelay = InitializationUtils.getMaxRetryDelayMs(configurationUtil, "etcd");
+            this.resilience = resilience;
 
             RetryPolicy defaultRetryPolicy = new RetryWithExponentialBackOff(startRetryDelay, -1,
                     maxRetryDelay);
@@ -170,8 +152,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
             RetryPolicy zeroRetryPolicy = new RetryNTimes(1, 0);
 
-            int initialRetryCount = configurationUtil.getInteger("kumuluzee.discovery.etcd.initial-retry-count")
-                    .orElse(1);
             if (initialRetryCount == 0) {
                 this.initialRequestRetryPolicy = zeroRetryPolicy;
             } else if (initialRetryCount > 0) {
@@ -193,32 +173,22 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     "http://192.168.99.100:2379,http://192.168.99.101:2379,http://192.168.99.102:2379");
         }
 
-        this.clusterId = configurationUtil.get("kumuluzee.discovery.cluster").orElse(null);
+        this.clusterId = clusterId;
     }
 
     @Override
     public void register(String serviceName, String version, String environment, long ttl,
-                         long pingInterval, boolean singleton, String baseUrl, String serviceId) {
+                         long pingInterval, boolean singleton, String baseUrl, String serviceId, String containerUrl, Integer servicePort) {
 
-        EeConfig eeConfig = EeConfig.getInstance();
-
-        if (baseUrl == null) {
-            // get service URL
-            baseUrl = eeConfig.getServer().getBaseUrl();
-            if (baseUrl == null || baseUrl.isEmpty()) {
-                baseUrl = configurationUtil.get("kumuluzee.base-url").orElse(null);
-                if (baseUrl != null) {
-                    try {
-                        baseUrl = new URL(baseUrl).toString();
-                    } catch (MalformedURLException e) {
-                        log.severe("Cannot parse kumuluzee.base-url. Exception: " + e.toString());
-                        baseUrl = null;
-                    }
-                }
+        if (baseUrl != null) {
+            try {
+                baseUrl = new URL(baseUrl).toString();
+            } catch (MalformedURLException e) {
+                log.severe("Cannot parse base-url. Exception: " + e.toString());
+                baseUrl = null;
             }
         }
 
-        String containerUrl = configurationUtil.get("kumuluzee.container-url").orElse(null);
         if (containerUrl != null) {
             try {
                 containerUrl = new URL(containerUrl).toString();
@@ -245,14 +215,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             interfaceAddresses.sort(new HostAddressComparator());
             URL ipUrl = null;
 
-            // get service port
-            Integer servicePort = eeConfig.getServer().getHttp().getPort();
-            if (servicePort == null) {
-                servicePort = EeConfig.getInstance().getServer().getHttps().getPort();
-            }
-            if (servicePort == null) {
-                servicePort = configurationUtil.getInteger("port").orElse(8080);
-            }
 
             for (int i = 0; i < interfaceAddresses.size() && ipUrl == null; i++) {
                 InetAddress addr = interfaceAddresses.get(i);
@@ -295,14 +257,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         Etcd2Registrator registrator = new Etcd2Registrator(etcd, serviceConfiguration, resilience);
         ScheduledFuture handle = scheduler.scheduleWithFixedDelay(registrator, 0, pingInterval, TimeUnit.SECONDS);
         this.registratorHandles.put(serviceId, handle);
-    }
-
-    @Override
-    public void register(String serviceName, String version, String environment, long ttl, long pingInterval, boolean
-            singleton) {
-
-        register(serviceName, version, environment, ttl, pingInterval, singleton, null, null);
-
     }
 
     @Override
@@ -365,8 +319,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     @Override
     public Optional<List<URL>> getServiceInstances(String serviceName, String version,
                                                    String environment, AccessType accessType) {
-
-        version = CommonUtils.determineVersion(this, serviceName, version, environment);
 
         if (!this.serviceInstances.containsKey(serviceName + "_" + version + "_" + environment)) {
 
@@ -504,13 +456,6 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 accessType);
 
         return optionalServiceInstances.flatMap(CommonUtils::pickServiceInstanceRoundRobin);
-    }
-
-    @Override
-    public Optional<URL> getServiceInstance(String serviceName, String version, String environment) {
-
-        return getServiceInstance(serviceName, version, environment, AccessType.DIRECT);
-
     }
 
     @Override
