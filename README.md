@@ -261,7 +261,7 @@ the registry. When discovering the last-known service a warning is logged.
 When injecting a service using the `@DiscoverService` annotation, the service is discovered every time the bean is
 created, even if we call a method that does not require injected service. This usually does not present a problem,
 since blocking request to the registry is needed only when the first discovery of the service is performed.
-Every following discovery of the service is performed on the internal buffer, which gets updated in the background.
+Every following discovery of the service is performed on the internal cache, which gets updated in the background.
 
 If this still presents a problem, you can avoid service discovery when not needed by either injecting `DiscoveryUtil`
 and performing service discovery programmatically, or by using the CDI Provider mechanism as shown below:
