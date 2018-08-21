@@ -140,6 +140,8 @@ public class RestApplication extends Application {
 }
 ```
 
+Example of service registration where the values are taken from the configuration framework: 
+
 ```java
 @RegisterService
 @ApplicationPath("/v1")
