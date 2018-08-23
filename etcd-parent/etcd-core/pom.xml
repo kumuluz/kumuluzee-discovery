@@ -25,7 +25,7 @@
         </dependency>
         <dependency>
             <groupId>com.kumuluz.ee.discovery</groupId>
-            <artifactId>kumuluzee-discovery-common</artifactId>
+            <artifactId>kumuluzee-discovery-common-core</artifactId>
         </dependency>
     </dependencies>
 

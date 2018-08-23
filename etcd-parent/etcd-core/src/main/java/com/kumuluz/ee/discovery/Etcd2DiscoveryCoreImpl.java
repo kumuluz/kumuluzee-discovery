@@ -176,6 +176,10 @@ public class Etcd2DiscoveryCoreImpl implements DiscoveryCore {
         this.clusterId = clusterId;
     }
 
+    public void init(EtcdClient client) {
+        this.etcd = client;
+    }
+
     @Override
     public void register(String serviceName, String version, String environment, long ttl,
                          long pingInterval, boolean singleton, String baseUrl, String serviceId, String containerUrl, Integer servicePort) {
