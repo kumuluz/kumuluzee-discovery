@@ -176,8 +176,48 @@ public class Etcd2DiscoveryCoreImpl implements DiscoveryCore {
         this.clusterId = clusterId;
     }
 
-    public void init(EtcdClient client) {
-        this.etcd = client;
+    public void init(EtcdClient client, boolean resilience, int startRetryDelay, int maxRetryDelay, int initialRetryCount, String clusterId) {
+
+        this.registeredServices = new LinkedList<>();
+        this.registratorHandles = new HashMap<>();
+
+        this.serviceInstances = new HashMap<>();
+        this.serviceVersions = new HashMap<>();
+        this.gatewayUrls = new HashMap<>();
+        this.lastKnownServices = new HashMap<>();
+        this.lastKnownVersions = new HashMap<>();
+
+        if (client != null) {
+            this.etcd = client;
+
+            this.resilience = resilience;
+
+            RetryPolicy defaultRetryPolicy = new RetryWithExponentialBackOff(startRetryDelay, -1,
+                    maxRetryDelay);
+            etcd.setRetryHandler(defaultRetryPolicy);
+
+            RetryPolicy zeroRetryPolicy = new RetryNTimes(1, 0);
+
+            if (initialRetryCount == 0) {
+                this.initialRequestRetryPolicy = zeroRetryPolicy;
+            } else if (initialRetryCount > 0) {
+                this.initialRequestRetryPolicy = new RetryWithExponentialBackOff(startRetryDelay, initialRetryCount,
+                        maxRetryDelay);
+            } else {
+                this.initialRequestRetryPolicy = defaultRetryPolicy;
+            }
+
+            if (!resilience) {
+                // set default and initial request retry policies to zero retry
+                etcd.setRetryHandler(zeroRetryPolicy);
+                this.initialRequestRetryPolicy = zeroRetryPolicy;
+            }
+
+        } else {
+            log.severe("No etcd client provided");
+        }
+
+        this.clusterId = clusterId;
     }
 
     @Override
