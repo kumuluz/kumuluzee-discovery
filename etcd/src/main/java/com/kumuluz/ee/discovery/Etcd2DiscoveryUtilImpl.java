@@ -142,7 +142,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             String[] splittedEtcdUrls = etcdUrls.split(",");
             URI[] etcdHosts = new URI[splittedEtcdUrls.length];
             for (int i = 0; i < etcdHosts.length; i++) {
-                etcdHosts[0] = URI.create(splittedEtcdUrls[0]);
+                etcdHosts[i] = URI.create(splittedEtcdUrls[i]);
             }
 
             if (etcdHosts.length % 2 == 0) {
