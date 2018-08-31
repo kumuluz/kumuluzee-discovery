@@ -312,7 +312,7 @@ specifying configuration key `kumuluzee.container-url`.
 
 ## Changelog
 
-Recent changes can be viewed on Github on the [Releases Page](https://github.com/kumuluz/kumuluzee/releases)
+Recent changes can be viewed on Github on the [Releases Page](https://github.com/kumuluz/kumuluzee-discovery/releases)
 
 ## Contribute
 
