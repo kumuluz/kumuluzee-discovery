@@ -188,7 +188,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             }
 
         } else {
-            log.severe("No etcd server hosts provided. Specify hosts with configuration key" +
+            log.severe("No etcd server hosts provided. Specify hosts with configuration key " +
                     "kumuluzee.discovery.etcd.hosts in format " +
                     "http://192.168.99.100:2379,http://192.168.99.101:2379,http://192.168.99.102:2379");
         }
@@ -270,7 +270,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                 if (containerUrl == null && ipUrl != null) {
                     containerUrl = ipUrl.toString();
                 } else if (containerUrl == null) {
-                    log.severe("No container URL found, but running in container. All services will use service" +
+                    log.severe("No container URL found, but running in container. All services will use service " +
                             "URL. You can set container URL with configuration key kumuluzee.container-url");
                 }
             }
@@ -280,7 +280,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                             ". You should probably set service URL with configuration key kumuluzee.server.base-url");
                     baseUrl = ipUrl.toString();
                 } else {
-                    log.severe("No service URL provided or found." +
+                    log.severe("No service URL provided or found. " +
                             "Set service URL with configuration key kumuluzee.server.base-url");
                     return;
                 }
