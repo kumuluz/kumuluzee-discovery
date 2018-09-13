@@ -23,7 +23,10 @@ package com.kumuluz.ee.discovery;
 
 import com.kumuluz.ee.common.Extension;
 import com.kumuluz.ee.common.config.EeConfig;
-import com.kumuluz.ee.common.dependencies.*;
+import com.kumuluz.ee.common.dependencies.EeComponentDependency;
+import com.kumuluz.ee.common.dependencies.EeComponentType;
+import com.kumuluz.ee.common.dependencies.EeExtensionDef;
+import com.kumuluz.ee.common.dependencies.EeExtensionGroup;
 import com.kumuluz.ee.common.wrapper.KumuluzServerWrapper;
 
 import java.util.logging.Logger;
@@ -35,10 +38,7 @@ import java.util.logging.Logger;
  * @since 1.0.0
  */
 @EeExtensionDef(name = "etcd", group = EeExtensionGroup.DISCOVERY)
-@EeComponentDependencies({
-        @EeComponentDependency(EeComponentType.SERVLET),
-        @EeComponentDependency(EeComponentType.CDI)
-})
+@EeComponentDependency(EeComponentType.CDI)
 public class Etcd2DiscoveryExtension implements Extension {
 
     private static final Logger log = Logger.getLogger(Etcd2DiscoveryExtension.class.getName());
