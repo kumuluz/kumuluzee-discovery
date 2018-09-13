@@ -603,19 +603,14 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
         List<String> presentVersions = this.serviceVersions.get(serviceName + "_" + environment);
 
-        String lastKnownVersion = lastKnownVersions.get(serviceName + "_" + environment);
-        if (lastKnownVersion != null && (presentVersions == null || !presentVersions.contains(lastKnownVersion))) {
-            // if present versions does not contain version of last known service, add it to the return object
-
-            // make a copy of presentVersions
-            if (presentVersions != null) {
-                presentVersions = new LinkedList<>(presentVersions);
-            } else {
-                presentVersions = new LinkedList<>();
+        if(presentVersions == null || presentVersions.size() == 0) {
+            // we check last known version if there are no present versions left
+            presentVersions = new LinkedList<>();
+            String lastKnownVersion = lastKnownVersions.get(serviceName + "_" + environment);
+            if (lastKnownVersion != null) {
+                presentVersions.add(lastKnownVersion);
             }
-            presentVersions.add(lastKnownVersion);
         }
-
         return Optional.ofNullable(presentVersions);
     }
 
