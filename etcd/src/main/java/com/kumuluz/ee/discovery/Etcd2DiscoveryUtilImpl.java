@@ -603,8 +603,8 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
         List<String> presentVersions = this.serviceVersions.get(serviceName + "_" + environment);
 
-        if(presentVersions == null || presentVersions.size() == 0) {
-            // we check last known version if there are no present versions left
+        if (presentVersions == null || presentVersions.size() == 0) {
+            // we check last known version only if there are no present versions left
             presentVersions = new LinkedList<>();
             String lastKnownVersion = lastKnownVersions.get(serviceName + "_" + environment);
             if (lastKnownVersion != null) {
