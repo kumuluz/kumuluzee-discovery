@@ -282,7 +282,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
             URL gatewayUrl = null;
             try {
-                com.google.common.base.Optional<String> gatewayOpt = kvClient.getValueAsString(fullKey);
+                Optional<String> gatewayOpt = kvClient.getValueAsString(fullKey);
                 if (gatewayOpt.isPresent()) {
                     gatewayUrl = new URL(gatewayOpt.get());
                 }
@@ -294,15 +294,14 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
             this.gatewayUrls.put(serviceName + "_" + version + "_" + environment, gatewayUrl);
 
             // add watch to key
-            ConsulResponseCallback<com.google.common.base.Optional<Value>> callback = new ConsulResponseCallback<com
-                    .google.common.base.Optional<Value>>() {
+            ConsulResponseCallback<Optional<Value>> callback = new ConsulResponseCallback<Optional<Value>>() {
 
                 AtomicReference<BigInteger> index = new AtomicReference<>(new BigInteger("0"));
 
                 int currentRetryDelay = startRetryDelay;
 
                 @Override
-                public void onComplete(ConsulResponse<com.google.common.base.Optional<Value>> consulResponse) {
+                public void onComplete(ConsulResponse<Optional<Value>> consulResponse) {
                     // successful request, reset delay
                     currentRetryDelay = startRetryDelay;
 
@@ -311,7 +310,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
 
                             Value v = consulResponse.getResponse().get();
 
-                            com.google.common.base.Optional<String> valueOpt = v.getValueAsString();
+                            Optional<String> valueOpt = v.getValueAsString();
 
                             if (valueOpt.isPresent()) {
                                 log.info("Gateway URL at " + fullKey + " changed. New value: " + valueOpt.get());
