@@ -32,6 +32,7 @@ import javax.lang.model.element.TypeElement;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 import java.io.*;
+import java.nio.file.NoSuchFileException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -127,7 +128,7 @@ public class RegisterServiceProcessor extends AbstractProcessor {
             reader = resource.openReader(true);
             readOldServiceFile(serviceClassNames, reader);
             return resource;
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException | NoSuchFileException e) {
             // close reader, return null
         } finally {
             if (reader != null) {
