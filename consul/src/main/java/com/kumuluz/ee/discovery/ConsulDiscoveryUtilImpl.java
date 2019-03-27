@@ -401,6 +401,7 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     }
 
     private void addServiceListener(String serviceKey) {
+
         ServiceHealthCache svHealth = ServiceHealthCache.newCache(healthClient, serviceKey);
 
         svHealth.addListener(newValues -> {
