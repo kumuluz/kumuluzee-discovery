@@ -17,7 +17,7 @@
  *  out of or in connection with the software or the use or other dealings in the
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
-*/
+ */
 package com.kumuluz.ee.discovery;
 
 import com.kumuluz.ee.common.config.EeConfig;
@@ -26,7 +26,6 @@ import com.kumuluz.ee.discovery.enums.AccessType;
 import com.kumuluz.ee.discovery.utils.*;
 import com.orbitz.consul.*;
 import com.orbitz.consul.async.ConsulResponseCallback;
-import com.orbitz.consul.cache.ConsulCache;
 import com.orbitz.consul.cache.ServiceHealthCache;
 import com.orbitz.consul.cache.ServiceHealthKey;
 import com.orbitz.consul.model.ConsulResponse;
@@ -402,25 +401,22 @@ public class ConsulDiscoveryUtilImpl implements DiscoveryUtil {
     }
 
     private void addServiceListener(String serviceKey) {
+
         ServiceHealthCache svHealth = ServiceHealthCache.newCache(healthClient, serviceKey);
 
-        svHealth.addListener(new ConsulCache.Listener<ServiceHealthKey, ServiceHealth>() {
+        svHealth.addListener(newValues -> {
 
-            @Override
-            public void notify(Map<ServiceHealthKey, ServiceHealth> newValues) {
+            log.info("Service instances for service " + serviceKey + " refreshed.");
 
-                log.info("Service instances for service " + serviceKey + " refreshed.");
+            serviceInstances.get(serviceKey).clear();
+            serviceVersions.get(serviceKey).clear();
 
-                serviceInstances.get(serviceKey).clear();
-                serviceVersions.get(serviceKey).clear();
-
-                for (Map.Entry<ServiceHealthKey, ServiceHealth> serviceHealthKey : newValues.entrySet()) {
-                    ConsulService consulService = ConsulService
-                            .getInstanceFromServiceHealth(serviceHealthKey.getValue());
-                    if (consulService != null) {
-                        serviceInstances.get(serviceKey).add(consulService);
-                        serviceVersions.get(serviceKey).add(consulService.getVersion());
-                    }
+            for (Map.Entry<ServiceHealthKey, ServiceHealth> serviceHealthKey : newValues.entrySet()) {
+                ConsulService consulService = ConsulService
+                        .getInstanceFromServiceHealth(serviceHealthKey.getValue());
+                if (consulService != null) {
+                    serviceInstances.get(serviceKey).add(consulService);
+                    serviceVersions.get(serviceKey).add(consulService.getVersion());
                 }
             }
         });
