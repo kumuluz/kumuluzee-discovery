@@ -74,14 +74,10 @@
     <profiles>
         <profile>
             <id>java9-modules</id>
-            <activation>
-                <jdk>[9,)</jdk>
-            </activation>
             <dependencies>
                 <dependency>
                     <groupId>javax.xml.bind</groupId>
                     <artifactId>jaxb-api</artifactId>
-                    <version>${jaxb-api.version}</version>
                 </dependency>
             </dependencies>
         </profile>
