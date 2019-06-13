@@ -33,6 +33,7 @@ import javax.ws.rs.core.Application;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -139,7 +140,7 @@ public class RegisterServiceUtil {
 
             boolean singleton = registerServiceAnnotation.singleton();
 
-            log.info("Registering service: " + serviceName);
+            log.log(Level.INFO,"Registering service: {0}", serviceName);
 
             discoveryUtil.register(serviceName, version, environment, ttl, pingInterval, singleton);
 

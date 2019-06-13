@@ -36,6 +36,7 @@ import javax.ws.rs.client.WebTarget;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -48,6 +49,8 @@ import java.util.logging.Logger;
 public class DiscoverServiceProducer {
 
     private static final Logger log = Logger.getLogger(DiscoverServiceProducer.class.getName());
+
+    private static final String SERVICE_NOT_FOUNT_MSG = "Service not found.";
 
     @Inject
     private DiscoveryUtil discoveryUtil;
@@ -79,7 +82,7 @@ public class DiscoverServiceProducer {
             try {
                 return Optional.of(client.target(url.get().toURI()));
             } catch (URISyntaxException e) {
-                e.printStackTrace();
+                log.severe("Exception while parsing URL. Message: " + e.getMessage());
             }
         }
 
@@ -94,7 +97,7 @@ public class DiscoverServiceProducer {
         if (urlOpt.isPresent()) {
             return urlOpt.get();
         } else {
-            throw new ServiceNotFoundException("Service not found.");
+            throw new ServiceNotFoundException(SERVICE_NOT_FOUNT_MSG);
         }
     }
 
@@ -105,7 +108,7 @@ public class DiscoverServiceProducer {
         if (stringOpt.isPresent()) {
             return stringOpt.get();
         } else {
-            throw new ServiceNotFoundException("Service not found.");
+            throw new ServiceNotFoundException(SERVICE_NOT_FOUNT_MSG);
         }
     }
 
@@ -116,7 +119,7 @@ public class DiscoverServiceProducer {
         if (webTargetOpt.isPresent()) {
             return webTargetOpt.get();
         } else {
-            throw new ServiceNotFoundException("Service not found.");
+            throw new ServiceNotFoundException(SERVICE_NOT_FOUNT_MSG);
         }
     }
 
@@ -135,8 +138,8 @@ public class DiscoverServiceProducer {
             }
         }
 
-        log.info("Initializing field for service: " + serviceName + " version: " + version + " environment: " +
-                environment);
+        log.log(Level.INFO, "Initializing field for service: {0} version: {1} environment: {2}",
+                new String[]{serviceName, version, environment});
 
         return discoveryUtil.getServiceInstance(serviceName, version, environment, accessType);
 

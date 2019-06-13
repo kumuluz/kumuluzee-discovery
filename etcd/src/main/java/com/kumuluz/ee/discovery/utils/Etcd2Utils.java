@@ -41,6 +41,11 @@ import java.util.logging.Logger;
  * @since 1.0.0
  */
 public class Etcd2Utils {
+
+    private Etcd2Utils() {
+        throw new IllegalStateException("Utility class");
+    }
+
     private static final Logger log = Logger.getLogger(Etcd2Utils.class.getName());
 
     public static EtcdKeysResponse getEtcdDir(EtcdClient etcd, String key, RetryPolicy retryPolicy,

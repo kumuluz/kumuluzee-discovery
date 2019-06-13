@@ -17,7 +17,7 @@
  *  out of or in connection with the software or the use or other dealings in the
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
-*/
+ */
 package com.kumuluz.ee.discovery;
 
 import com.kumuluz.ee.common.config.EeConfig;
@@ -51,6 +51,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -240,7 +241,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     }
                 }
             } catch (SocketException e) {
-                e.printStackTrace();
+                log.severe("Exception while automatically determining the IP address. Message: " + e.getMessage());
             }
             interfaceAddresses.sort(new HostAddressComparator());
             URL ipUrl = null;
@@ -276,8 +277,8 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
             }
             if (baseUrl == null || baseUrl.isEmpty()) {
                 if (ipUrl != null) {
-                    log.warning("No service URL provided, using URL " + ipUrl.toString() +
-                            ". You should probably set service URL with configuration key kumuluzee.server.base-url");
+                    log.log(Level.WARNING, "No service URL provided, using URL {0}. You should probably set service " +
+                            "URL with configuration key kumuluzee.server.base-url", ipUrl.toString());
                     baseUrl = ipUrl.toString();
                 } else {
                     log.severe("No service URL provided or found. " +
@@ -339,7 +340,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
     @Override
     public void deregister(String serviceId) {
 
-        log.info("Deregistering service with etcd. Service id: " + serviceId);
+        log.log(Level.INFO, "Deregistering service with etcd. Service id: {0}", serviceId);
 
         ScheduledFuture handle = this.registratorHandles.remove(serviceId);
         if (handle != null) {
@@ -431,7 +432,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
         if ((presentServices == null || presentServices.size() == 0) && this.lastKnownServices
                 .containsKey(serviceName + "_" + version + "_" + environment)) {
             // if no services are present, use the last known service
-            log.warning("No instances of " + serviceName + " found, using last known service.");
+            log.log(Level.WARNING, "No instances of {0} found, using last known service.", serviceName);
             presentServices = Collections.singletonMap("lastKnownService", this.lastKnownServices
                     .get(serviceName + "_" + version + "_" + environment));
         }
@@ -639,20 +640,20 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
 
         if (etcd != null) {
 
-            log.info("Initialising watch for key: " + key);
+            log.log(Level.INFO, "Initialising watch for key: {0}", key);
 
             EtcdResponsePromise<EtcdKeysResponse> responsePromiseUrl = null;
             try {
                 responsePromiseUrl = etcd.getDir(key).recursive().waitForChange(index).send();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.severe("Exception while setting the watch for service instances. Message: " + e.getMessage());
             }
 
             responsePromiseUrl.addListener((ResponsePromise<EtcdKeysResponse> promise) -> {
                 Throwable t = promise.getException();
                 if (t instanceof EtcdException) {
                     if (((EtcdException) t).isErrorCode(EtcdErrorCode.NodeExist)) {
-                        log.severe("Exception in etcd promise: " + ((EtcdException) t).etcdMessage);
+                        log.log(Level.SEVERE, "Exception in etcd promise: {0}", ((EtcdException) t).etcdMessage);
                     }
                     if (((EtcdException) t).isErrorCode(EtcdErrorCode.EventIndexCleared)) {
                         // index to old, reset watch to new index
@@ -674,7 +675,7 @@ public class Etcd2DiscoveryUtilImpl implements DiscoveryUtil {
                     if ("url".equals(Etcd2Utils.getLastKeyLayer(node.getKey()))) {
 
                         if (node.getValue() == null) {
-                            log.info("Service instance deleted: " + node.getKey());
+                            log.log(Level.INFO, "Service instance deleted: {0}", node.getKey());
                             if (this.serviceInstances.get(serviceName + "_" + version + "_" + environment)
                                     .size() == 1) {
                                 // if removing last service, save it to separate buffer

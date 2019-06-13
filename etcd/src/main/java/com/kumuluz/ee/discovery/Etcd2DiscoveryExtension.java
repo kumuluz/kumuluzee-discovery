@@ -51,5 +51,6 @@ public class Etcd2DiscoveryExtension implements Extension {
 
     @Override
     public void load() {
+        // this extension does not perform any action on load
     }
 }

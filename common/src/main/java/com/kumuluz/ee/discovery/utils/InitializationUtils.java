@@ -33,6 +33,10 @@ import java.util.Optional;
  */
 public class InitializationUtils {
 
+    private InitializationUtils() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static int getStartRetryDelayMs(ConfigurationUtil configurationUtil, String implementation) {
         Optional<Integer> universalConfig = configurationUtil
                 .getInteger("kumuluzee.discovery.start-retry-delay-ms");

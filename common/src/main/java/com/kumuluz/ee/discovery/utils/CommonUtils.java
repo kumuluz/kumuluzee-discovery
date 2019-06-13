@@ -17,7 +17,7 @@
  *  out of or in connection with the software or the use or other dealings in the
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
-*/
+ */
 package com.kumuluz.ee.discovery.utils;
 
 import com.vdurmont.semver4j.Requirement;
@@ -38,6 +38,10 @@ import java.util.Optional;
  * @since 1.0.0
  */
 public class CommonUtils {
+
+    private CommonUtils() {
+        throw new IllegalStateException("Utility class");
+    }
 
     private static int lastInstanceServedIndex;
 
@@ -60,6 +64,7 @@ public class CommonUtils {
                 new Semver(version, Semver.SemverType.NPM);
                 return version;
             } catch (SemverException ignored) {
+                // ignored
             }
         }
 

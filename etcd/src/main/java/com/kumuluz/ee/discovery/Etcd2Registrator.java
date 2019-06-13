@@ -31,6 +31,7 @@ import mousio.etcd4j.responses.EtcdKeysResponse;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -79,7 +80,7 @@ public class Etcd2Registrator implements Runnable {
                     this.isRegistered = false;
                     this.registerToEtcd();
                 } else {
-                    e.printStackTrace();
+                    log.severe("Unknown etcd exception. Message: " + e.getMessage());
                 }
             }
         }
@@ -163,11 +164,11 @@ public class Etcd2Registrator implements Runnable {
         String message = "Timeout exception. Cannot read given key in specified time or retry-count " +
                 "constraints.";
         if (resilience) {
-            log.warning(message + " Error: " + e);
+            log.log(Level.WARNING, "{0} Message: {1}", new String[]{message, e.getMessage()});
         } else {
             RuntimeException ex = new EtcdNotAvailableException(message, e);
             // print stack trace, because Exceptions in scheduler are not reported
-            ex.printStackTrace();
+            log.log(Level.SEVERE, "{0} Message: {1}", new String[]{message, ex.getMessage()});
             throw ex; // stops the scheduler
         }
     }

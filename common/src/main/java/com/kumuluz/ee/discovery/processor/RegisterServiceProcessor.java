@@ -17,7 +17,7 @@
  *  out of or in connection with the software or the use or other dealings in the
  *  software. See the License for the specific language governing permissions and
  *  limitations under the License.
-*/
+ */
 package com.kumuluz.ee.discovery.processor;
 
 import com.kumuluz.ee.discovery.annotations.RegisterService;
@@ -36,6 +36,7 @@ import java.nio.file.NoSuchFileException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * Compile-time annotation processor for RegisterService annotation. Generates service file.
@@ -44,6 +45,8 @@ import java.util.Set;
  * @since 1.0.0
  */
 public class RegisterServiceProcessor extends AbstractProcessor {
+
+    private static final Logger log = Logger.getLogger(RegisterServiceProcessor.class.getName());
 
     private Filer filer;
 
@@ -80,7 +83,7 @@ public class RegisterServiceProcessor extends AbstractProcessor {
             try {
                 writeServiceFile(serviceClassNames, "META-INF/services/javax.ws.rs.core.Application");
             } catch (IOException e) {
-                e.printStackTrace();
+                log.severe("Exception while writting service file. Message: " + e.getMessage());
             }
         }
 
@@ -97,7 +100,7 @@ public class RegisterServiceProcessor extends AbstractProcessor {
                 writeServiceFile(serviceClassNames, serviceFileName, file);
                 return;
             } catch (IllegalStateException e) {
-                e.printStackTrace();
+                log.severe("Illegal state. Message: " + e.getMessage());
             }
         }
         writeServiceFile(serviceClassNames, serviceFileName, null);
